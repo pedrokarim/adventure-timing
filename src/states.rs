@@ -9,6 +9,7 @@ pub enum GameState {
     #[default]
     MainMenu,
     HeroSelect,
+    LevelMap,
     Settings,
     Credits,
     Playing,

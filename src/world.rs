@@ -61,6 +61,49 @@ impl LevelId {
         }
     }
 
+    /// Couleur représentative du niveau pour la Carte du voyage.
+    pub fn badge_color(self) -> Color {
+        match self {
+            LevelId::PinkSunset => Color::srgb(0.96, 0.55, 0.65),
+            LevelId::NightForest => Color::srgb(0.22, 0.34, 0.50),
+            LevelId::AmberRuins => Color::srgb(0.91, 0.66, 0.30),
+            LevelId::Sanctuary => Color::srgb(0.86, 0.25, 0.31),
+            LevelId::Dawn => Color::srgb(0.92, 0.92, 0.94),
+        }
+    }
+
+    /// Tagline courte pour la carte (1 ligne).
+    pub fn tagline(self) -> &'static str {
+        match self {
+            LevelId::PinkSunset => "Coucher rose, monolithes flottants",
+            LevelId::NightForest => "Foret bleu nuit, arbre geant",
+            LevelId::AmberRuins => "Ruines de cuivre, lumieres mortes",
+            LevelId::Sanctuary => "Sanctuaire noir, rouge sang",
+            LevelId::Dawn => "Aurore blanche, voyage acheve",
+        }
+    }
+
+    /// Numéro romain pour l'affichage stylé.
+    pub fn roman(self) -> &'static str {
+        match self {
+            LevelId::PinkSunset => "I",
+            LevelId::NightForest => "II",
+            LevelId::AmberRuins => "III",
+            LevelId::Sanctuary => "IV",
+            LevelId::Dawn => "V",
+        }
+    }
+
+    pub fn all() -> &'static [LevelId] {
+        &[
+            LevelId::PinkSunset,
+            LevelId::NightForest,
+            LevelId::AmberRuins,
+            LevelId::Sanctuary,
+            LevelId::Dawn,
+        ]
+    }
+
     fn suffix(self) -> &'static str {
         match self {
             LevelId::PinkSunset => "",
@@ -227,6 +270,7 @@ fn handle_level_transition(
     mut next_state: ResMut<NextState<crate::states::GameState>>,
     mut player_q: Query<&mut Transform, With<crate::player::Player>>,
     mut respawn_point: ResMut<crate::level::RespawnPoint>,
+    mut save_data: ResMut<crate::save::SaveData>,
 ) {
     if events.is_empty() {
         return;
@@ -235,6 +279,11 @@ fn handle_level_transition(
 
     if let Some(next) = current_level.0.next() {
         current_level.0 = next;
+        // Débloque le niveau suivant sur la Carte du voyage
+        if next.number() > save_data.highest_level {
+            save_data.highest_level = next.number();
+            crate::save::save_data(&save_data);
+        }
         for e in &level_entities {
             commands.entity(e).despawn_recursive();
         }
@@ -247,6 +296,11 @@ fn handle_level_transition(
         spawn_level_inline(&mut commands, &asset_server, next);
         crate::parallax::spawn_parallax_layers(&mut commands, &asset_server, next);
     } else {
+        // Le dernier niveau est terminé : débloque tout (max)
+        if save_data.highest_level < TOTAL_LEVELS {
+            save_data.highest_level = TOTAL_LEVELS;
+            crate::save::save_data(&save_data);
+        }
         next_state.set(crate::states::GameState::Win);
     }
 }

@@ -17,7 +17,7 @@ use crate::player::{Player, PlayerController, PlayerHp};
 use crate::throwables::Inventory;
 use crate::save::{save_data, save_settings, SaveData, Settings};
 use crate::states::{GameState, RunStats};
-use crate::world::{CurrentLevel, PLAYER_SPAWN, TOTAL_LEVELS};
+use crate::world::{CurrentLevel, LevelId, PLAYER_SPAWN, TOTAL_LEVELS};
 use bevy::app::AppExit;
 use bevy::prelude::*;
 use bevy::text::Font;
@@ -113,10 +113,12 @@ pub enum MenuAction {
     Resume,
     Restart,
     GotoHeroSelect,
+    GotoLevelMap,
     GotoSettings,
     GotoCredits,
     GotoMainMenu,
     SelectHero(Hero),
+    SelectLevel(LevelId),
     ConfirmHero,
     ToggleFullscreen,
     AdjustMaster(f32),
@@ -210,6 +212,8 @@ impl Plugin for UiPlugin {
             .add_systems(OnExit(GameState::MainMenu), despawn_screen)
             .add_systems(OnEnter(GameState::HeroSelect), spawn_hero_select)
             .add_systems(OnExit(GameState::HeroSelect), despawn_screen)
+            .add_systems(OnEnter(GameState::LevelMap), spawn_level_map)
+            .add_systems(OnExit(GameState::LevelMap), despawn_screen)
             .add_systems(OnEnter(GameState::Settings), spawn_settings)
             .add_systems(OnExit(GameState::Settings), exit_settings)
             .add_systems(OnEnter(GameState::Credits), spawn_credits)
@@ -765,6 +769,7 @@ fn spawn_main_menu(
                 spawn_button(p, &mut counter, font, "Continuer", MenuAction::Continue);
             }
             spawn_button(p, &mut counter, font, "Nouvelle partie", MenuAction::GotoHeroSelect);
+            spawn_button(p, &mut counter, font, "Carte du voyage", MenuAction::GotoLevelMap);
             spawn_button(p, &mut counter, font, "Paramètres", MenuAction::GotoSettings);
             spawn_button(p, &mut counter, font, "Crédits", MenuAction::GotoCredits);
             spawn_button(p, &mut counter, font, "Quitter", MenuAction::Quit);
@@ -779,6 +784,218 @@ fn spawn_main_menu(
         );
         }); // ferme le with_children de l'overlay
     }); // ferme le with_children du root
+}
+
+// =================================================== Level map ===
+
+fn spawn_level_map(
+    mut commands: Commands,
+    mut counter: ResMut<ButtonCount>,
+    mut selection: ResMut<MenuSelection>,
+    font: Res<UiFont>,
+    save: Res<SaveData>,
+) {
+    begin_screen(&mut counter, &mut selection);
+    let font = font.into_inner();
+    let highest = save.highest_level;
+
+    let root = spawn_overlay(&mut commands);
+    commands.entity(root).with_children(|p| {
+        spawn_title(p, font, "Carte du voyage");
+        spawn_subtitle(p, font, "Cinq etapes a traverser");
+
+        // Row de 5 medallions
+        p.spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Row,
+                column_gap: Val::Px(20.0),
+                margin: UiRect::vertical(Val::Px(28.0)),
+                align_items: AlignItems::FlexStart,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|p| {
+            for (i, &level) in LevelId::all().iter().enumerate() {
+                let unlocked = level.number() <= highest;
+                spawn_level_medallion(p, &mut counter, font, level, unlocked);
+                // Pointillés entre médaillons (sauf après le dernier)
+                if i < LevelId::all().len() - 1 {
+                    spawn_path_dots(p);
+                }
+            }
+        });
+
+        spawn_text(p, font, "Clique sur un niveau debloque pour y aller", 16.0, HINT_COLOR);
+
+        p.spawn(NodeBundle {
+            style: Style {
+                margin: UiRect::top(Val::Px(18.0)),
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|p| {
+            spawn_button(p, &mut counter, font, "Retour au menu", MenuAction::GotoMainMenu);
+        });
+    });
+}
+
+fn spawn_level_medallion(
+    parent: &mut ChildBuilder,
+    counter: &mut ResMut<ButtonCount>,
+    font: &UiFont,
+    level: LevelId,
+    unlocked: bool,
+) {
+    let index = counter.0;
+    counter.0 += 1;
+
+    let (bg_color, border_color, text_color, num_color) = if unlocked {
+        (PAPYRUS, WOOD_DARK, WOOD_DARKEST, WOOD_DARKEST)
+    } else {
+        (
+            Color::srgba(0.50, 0.40, 0.30, 0.5),
+            Color::srgba(0.20, 0.13, 0.06, 0.8),
+            Color::srgba(0.40, 0.30, 0.20, 0.8),
+            Color::srgba(0.30, 0.20, 0.10, 0.8),
+        )
+    };
+    let action = if unlocked {
+        MenuAction::SelectLevel(level)
+    } else {
+        MenuAction::GotoLevelMap // no-op, juste un placeholder
+    };
+
+    parent
+        .spawn((
+            action,
+            ButtonIndex(index),
+            LockedBackground,
+            ButtonBundle {
+                style: Style {
+                    width: Val::Px(150.0),
+                    height: Val::Px(210.0),
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::FlexStart,
+                    padding: UiRect::all(Val::Px(12.0)),
+                    border: UiRect::all(Val::Px(5.0)),
+                    row_gap: Val::Px(8.0),
+                    ..default()
+                },
+                background_color: bg_color.into(),
+                border_color: border_color.into(),
+                ..default()
+            },
+        ))
+        .with_children(|p| {
+            // 4 nails dans les coins (carte bois clouté)
+            for (top, left, right, bottom) in [
+                (Some(2.0), Some(2.0), None, None),
+                (Some(2.0), None, Some(2.0), None),
+                (None, Some(2.0), None, Some(2.0)),
+                (None, None, Some(2.0), Some(2.0)),
+            ] {
+                p.spawn(NodeBundle {
+                    style: Style {
+                        position_type: PositionType::Absolute,
+                        top: top.map(Val::Px).unwrap_or(Val::Auto),
+                        left: left.map(Val::Px).unwrap_or(Val::Auto),
+                        right: right.map(Val::Px).unwrap_or(Val::Auto),
+                        bottom: bottom.map(Val::Px).unwrap_or(Val::Auto),
+                        width: Val::Px(6.0),
+                        height: Val::Px(6.0),
+                        ..default()
+                    },
+                    background_color: border_color.into(),
+                    ..default()
+                });
+            }
+
+            // Numéro romain (gros)
+            p.spawn(TextBundle::from_section(
+                level.roman(),
+                TextStyle {
+                    font: font.display.clone(),
+                    font_size: 42.0,
+                    color: num_color,
+                },
+            ));
+
+            // Badge couleur (32x32 carré papyrus contenant la badge_color)
+            p.spawn(NodeBundle {
+                style: Style {
+                    width: Val::Px(40.0),
+                    height: Val::Px(40.0),
+                    border: UiRect::all(Val::Px(2.0)),
+                    ..default()
+                },
+                background_color: level.badge_color().into(),
+                border_color: border_color.into(),
+                ..default()
+            });
+
+            // Label du niveau
+            p.spawn(TextBundle::from_section(
+                level.label(),
+                TextStyle {
+                    font: font.display.clone(),
+                    font_size: 14.0,
+                    color: text_color,
+                },
+            ));
+
+            // Tagline
+            p.spawn(TextBundle::from_section(
+                level.tagline(),
+                TextStyle {
+                    font: font.regular.clone(),
+                    font_size: 11.0,
+                    color: text_color,
+                },
+            ));
+
+            // Status (étoile / cadenas)
+            p.spawn(TextBundle::from_section(
+                if unlocked { "✓" } else { "verr." },
+                TextStyle {
+                    font: font.display.clone(),
+                    font_size: 16.0,
+                    color: if unlocked { GOLD } else { text_color },
+                },
+            ));
+        });
+}
+
+fn spawn_path_dots(parent: &mut ChildBuilder) {
+    parent
+        .spawn(NodeBundle {
+            style: Style {
+                width: Val::Px(20.0),
+                height: Val::Px(210.0),
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                column_gap: Val::Px(4.0),
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|p| {
+            for _ in 0..3 {
+                p.spawn(NodeBundle {
+                    style: Style {
+                        width: Val::Px(4.0),
+                        height: Val::Px(4.0),
+                        ..default()
+                    },
+                    background_color: WOOD_DARK.into(),
+                    ..default()
+                });
+            }
+        });
 }
 
 // =================================================== Hero select ===
@@ -1430,9 +1647,14 @@ fn trigger_action(
         }
         MenuAction::Restart => next.set(GameState::Playing),
         MenuAction::GotoHeroSelect => next.set(GameState::HeroSelect),
+        MenuAction::GotoLevelMap => next.set(GameState::LevelMap),
         MenuAction::GotoSettings => next.set(GameState::Settings),
         MenuAction::GotoCredits => next.set(GameState::Credits),
         MenuAction::GotoMainMenu => next.set(GameState::MainMenu),
+        MenuAction::SelectLevel(level) => {
+            current_level.0 = level;
+            next.set(GameState::Playing);
+        }
         MenuAction::SelectHero(hero) => {
             selected_hero.0 = hero;
             // Activer une carte démarre directement la partie au niveau 1.

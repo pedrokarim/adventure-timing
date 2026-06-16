@@ -27,6 +27,14 @@ pub struct SaveData {
     pub runs_completed: u32,
     #[serde(default)]
     pub selected_hero: Hero,
+    /// Niveau le plus haut atteint (1 par défaut, monte quand un niveau
+    /// est terminé). Sert au déblocage sur la Carte du voyage.
+    #[serde(default = "default_highest_level")]
+    pub highest_level: u32,
+}
+
+fn default_highest_level() -> u32 {
+    1
 }
 
 impl SaveData {
