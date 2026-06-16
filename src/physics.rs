@@ -32,6 +32,11 @@ impl Collider {
 #[derive(Component)]
 pub struct Solid;
 
+/// Marqueur pour les entités qui ne subissent pas la gravité (projectiles
+/// magiques, items lévitants, …).
+#[derive(Component)]
+pub struct NoGravity;
+
 /// Drapeau de contact bas, mis à jour à chaque pas par le système de
 /// collision. Utilisé par le contrôleur du joueur (coyote time, saut).
 #[derive(Component, Default, Debug)]
@@ -69,7 +74,7 @@ impl Plugin for PhysicsPlugin {
 #[derive(SystemSet, Hash, Eq, PartialEq, Clone, Debug)]
 pub struct PhysicsSet;
 
-fn apply_gravity(time: Res<Time>, mut q: Query<&mut Velocity>) {
+fn apply_gravity(time: Res<Time>, mut q: Query<&mut Velocity, Without<NoGravity>>) {
     let dt = time.delta_seconds();
     for mut v in &mut q {
         v.0.y -= GRAVITY * dt;

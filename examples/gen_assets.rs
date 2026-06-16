@@ -885,6 +885,218 @@ fn make_parallax_front() {
 
 // =============================================================== main ===
 
+// ============================================================ Items ===
+
+fn make_items() {
+    // 16x16 chacun.
+
+    // Cristal cyan : losange brillant
+    let mut crystal = RgbaImage::from_pixel(16, 16, TR);
+    for row in 0..14 {
+        let half = if row < 7 { row + 1 } else { 14 - row };
+        let y = 1 + row;
+        rect(&mut crystal, 8 - half, y, half * 2, 1, CYAN_DK);
+    }
+    // cœur clair au centre
+    for row in 0..8 {
+        let half = if row < 4 { row + 1 } else { 8 - row };
+        let y = 4 + row;
+        rect(&mut crystal, 8 - half, y, half * 2, 1, CYAN);
+    }
+    put(&mut crystal, 7, 6, CYAN_BRIGHT);
+    put(&mut crystal, 8, 6, CYAN_BRIGHT);
+    put(&mut crystal, 7, 7, CYAN_BRIGHT);
+    save(&crystal, "assets/sprites/item_crystal.png");
+
+    // Pétale d'ambre
+    let mut petal = RgbaImage::from_pixel(16, 16, TR);
+    // forme de goutte inversée
+    for row in 0..12 {
+        let t = row as f32 / 12.0;
+        let half = ((1.0 - (t - 0.5).abs() * 1.4) * 6.0) as i32;
+        if half > 0 {
+            let y = 2 + row;
+            rect(&mut petal, 8 - half, y, half * 2, 1, AMBER);
+        }
+    }
+    // highlight clair
+    put(&mut petal, 7, 5, AMBER_BRIGHT);
+    put(&mut petal, 8, 5, AMBER_BRIGHT);
+    put(&mut petal, 7, 6, AMBER_BRIGHT);
+    // base sombre
+    put(&mut petal, 7, 13, AMBER_DK);
+    put(&mut petal, 8, 13, AMBER_DK);
+    save(&petal, "assets/sprites/item_petal.png");
+
+    // Plume blanche : forme allongée
+    let mut feather = RgbaImage::from_pixel(16, 16, TR);
+    // Hampe diagonale
+    for i in 0..12 {
+        put(&mut feather, 4 + i / 3, 2 + i, HAIR);
+    }
+    // Barbes (lignes obliques)
+    for i in 0..6 {
+        let y = 4 + i * 2;
+        rect(&mut feather, 5 + i / 2, y, 4 - i / 3, 1, SKIN);
+        rect(&mut feather, 2 + i / 2, y + 1, 4 - i / 3, 1, SKIN);
+    }
+    save(&feather, "assets/sprites/item_feather.png");
+
+    // Sablier : deux triangles connectés
+    let mut hourglass = RgbaImage::from_pixel(16, 16, TR);
+    // Cadres
+    hline(&mut hourglass, 3, 1, 10, AMBER_DK);
+    hline(&mut hourglass, 3, 14, 10, AMBER_DK);
+    // Triangle haut (rempli rose pâle)
+    for row in 0..6 {
+        let half = 5 - row;
+        let y = 2 + row;
+        rect(&mut hourglass, 8 - half, y, half * 2, 1, AMBER);
+    }
+    // Triangle bas
+    for row in 0..6 {
+        let half = row + 1;
+        let y = 8 + row;
+        rect(&mut hourglass, 8 - half, y, half * 2, 1, AMBER);
+    }
+    // Goutte au centre (sable qui tombe)
+    rect(&mut hourglass, 7, 7, 2, 1, AMBER_BRIGHT);
+    // Highlight cadre
+    put(&mut hourglass, 3, 1, AMBER_BRIGHT);
+    put(&mut hourglass, 12, 14, AMBER_BRIGHT);
+    save(&hourglass, "assets/sprites/item_hourglass.png");
+}
+
+// ========================================================= Enemies ===
+
+fn make_enemies() {
+    // Crawler 20x14 : petite araignée/insecte sombre avec yeux cyan
+    let mut crawler = RgbaImage::from_pixel(20, 14, TR);
+    // Corps oval
+    for row in 0..8 {
+        let half = match row {
+            0 | 7 => 4,
+            1 | 6 => 6,
+            _ => 7,
+        };
+        let y = 3 + row;
+        rect(&mut crawler, 10 - half, y, half * 2, 1, CLOAK);
+    }
+    // Highlight dorsal
+    hline(&mut crawler, 6, 4, 8, CLOAK_EDGE);
+    put(&mut crawler, 9, 3, CLOAK_EDGE);
+    put(&mut crawler, 10, 3, CLOAK_EDGE);
+    // Yeux cyan
+    put(&mut crawler, 13, 6, CYAN_BRIGHT);
+    put(&mut crawler, 15, 6, CYAN_BRIGHT);
+    put(&mut crawler, 13, 7, CYAN);
+    put(&mut crawler, 15, 7, CYAN);
+    // Pattes
+    for x in [2, 5, 14, 17].iter() {
+        put(&mut crawler, *x, 11, CLOAK);
+        put(&mut crawler, *x, 12, CLOAK);
+    }
+    save(&crawler, "assets/sprites/enemy_crawler.png");
+
+    // Flyer 18x18 : œil flottant avec ailes
+    let mut flyer = RgbaImage::from_pixel(18, 18, TR);
+    // Corps central rond
+    for row in 0..12 {
+        let half = match row {
+            0 | 11 => 3,
+            1 | 10 => 5,
+            2 | 9 => 6,
+            _ => 7,
+        };
+        let y = 3 + row;
+        rect(&mut flyer, 9 - half, y, half * 2, 1, CLOAK);
+    }
+    // Pupille cyan
+    rect(&mut flyer, 6, 7, 6, 4, EYE);
+    put(&mut flyer, 7, 8, CYAN_BRIGHT);
+    put(&mut flyer, 9, 8, CYAN_BRIGHT);
+    put(&mut flyer, 8, 9, CYAN);
+    put(&mut flyer, 10, 9, CYAN);
+    // Ailes (rectangles latéraux semi-transparents)
+    let wing = Rgba([46, 110, 148, 180]);
+    rect(&mut flyer, 0, 6, 3, 5, wing);
+    rect(&mut flyer, 15, 6, 3, 5, wing);
+    put(&mut flyer, 0, 5, wing);
+    put(&mut flyer, 17, 5, wing);
+    save(&flyer, "assets/sprites/enemy_flyer.png");
+}
+
+// ====================================================== Projectiles ===
+
+fn make_projectile_magic() {
+    // 18x10 : éclair de magie cyan avec halo
+    let mut img = RgbaImage::from_pixel(18, 10, TR);
+    // Core elongé
+    rect(&mut img, 4, 4, 12, 2, CYAN_BRIGHT);
+    rect(&mut img, 3, 3, 14, 4, CYAN);
+    rect(&mut img, 2, 4, 16, 2, CYAN);
+    // Pointe avant (côté droit)
+    rect(&mut img, 16, 4, 1, 2, CYAN_BRIGHT);
+    put(&mut img, 17, 5, CYAN);
+    // Queue (côté gauche)
+    rect(&mut img, 0, 4, 2, 2, CYAN_DK);
+    // Halo subtil
+    let halo = Rgba([108, 196, 232, 120]);
+    rect(&mut img, 3, 1, 12, 1, halo);
+    rect(&mut img, 3, 8, 12, 1, halo);
+    save(&img, "assets/sprites/projectile_magic.png");
+}
+
+// ====================================================== Throwables ===
+
+fn make_throwables() {
+    // Bombe 12x12 : sphère noire avec mèche
+    let mut bomb = RgbaImage::from_pixel(12, 12, TR);
+    for row in 0..10 {
+        let half = match row {
+            0 | 9 => 2,
+            1 | 8 => 3,
+            _ => 4,
+        };
+        let y = 1 + row;
+        rect(&mut bomb, 6 - half, y, half * 2, 1, EYE);
+    }
+    // Highlight
+    put(&mut bomb, 4, 3, Rgba([90, 100, 130, 255]));
+    put(&mut bomb, 5, 3, Rgba([90, 100, 130, 255]));
+    // Mèche
+    put(&mut bomb, 6, 0, AMBER);
+    put(&mut bomb, 7, 1, AMBER_BRIGHT);
+    save(&bomb, "assets/sprites/throwable_bomb.png");
+
+    // Bloc de glace 32x16 : carreau cyan translucide
+    let mut ice = RgbaImage::from_pixel(32, 16, TR);
+    rect(&mut ice, 0, 0, 32, 16, CYAN_DK);
+    rect(&mut ice, 1, 1, 30, 14, CYAN);
+    rect(&mut ice, 2, 2, 28, 12, Rgba([196, 232, 248, 200]));
+    // Reflets diagonaux
+    for i in 0..6 {
+        put(&mut ice, 4 + i, 3 + i, CYAN_BRIGHT);
+    }
+    for i in 0..4 {
+        put(&mut ice, 20 + i, 4 + i, CYAN_BRIGHT);
+    }
+    // Bordure plus claire
+    hline(&mut ice, 0, 0, 32, CYAN_BRIGHT);
+    save(&ice, "assets/sprites/throwable_ice.png");
+
+    // Plateforme magique 48x6 : barre cyan glowing
+    let mut platform = RgbaImage::from_pixel(48, 6, TR);
+    rect(&mut platform, 0, 0, 48, 6, CYAN_DK);
+    rect(&mut platform, 0, 1, 48, 4, CYAN);
+    rect(&mut platform, 0, 2, 48, 2, CYAN_BRIGHT);
+    // Effet stries
+    for i in (0..48).step_by(4) {
+        put(&mut platform, i, 2, Rgba([232, 244, 252, 255]));
+    }
+    save(&platform, "assets/sprites/throwable_platform.png");
+}
+
 fn main() {
     make_player();
     make_ground_tile();
@@ -898,5 +1110,9 @@ fn main() {
     make_parallax_mid();
     make_parallax_front();
     make_menu_background();
+    make_items();
+    make_throwables();
+    make_projectile_magic();
+    make_enemies();
     println!("Assets générés dans assets/sprites/");
 }

@@ -1,13 +1,17 @@
 mod audio;
 mod camera;
 mod effects;
+mod enemies;
+mod items;
 mod level;
 mod parallax;
 mod physics;
 mod player;
 mod save;
 mod states;
+mod throwables;
 mod ui;
+mod weapons;
 mod world;
 
 use bevy::prelude::*;
@@ -37,6 +41,10 @@ fn main() {
             physics::PhysicsPlugin,
             world::WorldPlugin,
             level::LevelPlugin,
+            items::ItemsPlugin,
+            throwables::ThrowablesPlugin,
+            weapons::WeaponsPlugin,
+            enemies::EnemiesPlugin,
             player::PlayerPlugin,
             effects::EffectsPlugin,
             camera::CameraPlugin,

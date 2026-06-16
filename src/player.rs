@@ -3,6 +3,7 @@
 //! d'animation par texture atlas (7 frames, voir examples/gen_assets.rs).
 
 use crate::audio::{PlayerAirJumped, PlayerJumped};
+use crate::items::ActiveEffects;
 use crate::effects::{ScreenShake, SquashStretch};
 use crate::level::RespawnPoint;
 use crate::physics::{Collider, Grounded, PhysicsSet, Velocity};
@@ -262,6 +263,7 @@ fn handle_horizontal_input(
 fn handle_jump_input(
     keys: Res<ButtonInput<KeyCode>>,
     mut q: Query<(&mut Velocity, &mut PlayerController, &Grounded), With<Player>>,
+    effects: Res<ActiveEffects>,
     mut jumped: EventWriter<PlayerJumped>,
     mut air_jumped: EventWriter<PlayerAirJumped>,
 ) {
@@ -283,14 +285,17 @@ fn handle_jump_input(
             && ctrl.air_jumps_remaining > 0;
         let buffered = ctrl.jump_buffer_timer < JUMP_BUFFER;
 
+        // Plume blanche : saut +30 %
+        let boost = if effects.jump_boost > 0.0 { 1.3 } else { 1.0 };
+
         if buffered && can_jump_ground {
-            velocity.0.y = JUMP_VELOCITY;
+            velocity.0.y = JUMP_VELOCITY * boost;
             ctrl.is_jumping = true;
             ctrl.jump_buffer_timer = JUMP_BUFFER;
             ctrl.coyote_timer = COYOTE_TIME;
             jumped.send(PlayerJumped);
         } else if buffered && can_jump_air {
-            velocity.0.y = AIR_JUMP_VELOCITY;
+            velocity.0.y = AIR_JUMP_VELOCITY * boost;
             ctrl.is_jumping = true;
             ctrl.air_jumps_remaining -= 1;
             ctrl.jump_buffer_timer = JUMP_BUFFER;

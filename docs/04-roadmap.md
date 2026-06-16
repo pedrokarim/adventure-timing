@@ -544,6 +544,78 @@ src/enemies.rs                  ← nouveau module
 
 ---
 
+## Étape H — Sélection de héros
+
+**But** : un écran de sélection avec plusieurs personnages jouables,
+chacun avec ses propres stats et son sprite.
+
+### 3 héros proposés
+
+| Héros | Style | Vitesse | Saut | Double saut | Particularité |
+|---|---|---|---|---|---|
+| 🧙 **L'Errante** | Cape sombre (actuelle) | Normal (320) | 760 | 1 | Équilibrée |
+| ⚡ **Le Funambule** | Acrobate fin et lestée | Rapide (380) | 700 | 2 (triple saut) | Plus mobile |
+| 🛡️ **Le Gardien** | Tank en armure | Lent (240) | 820 | 0 | Pas de double saut mais saut plus haut + invincible 0.3 s après le respawn |
+
+### Architecture
+
+```rust
+// src/heroes.rs (nouveau module)
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub enum Hero {
+    Wanderer,    // L'Errante (default)
+    Tightrope,   // Le Funambule
+    Guardian,    // Le Gardien
+}
+
+#[derive(Resource)]
+pub struct SelectedHero(pub Hero);
+
+impl Hero {
+    pub fn label(&self) -> &str { ... }
+    pub fn description(&self) -> &str { ... }
+    pub fn sprite_path(&self) -> &str { ... }
+    pub fn move_speed(&self) -> f32 { ... }
+    pub fn jump_velocity(&self) -> f32 { ... }
+    pub fn max_air_jumps(&self) -> u8 { ... }
+    pub fn respawn_invincibility(&self) -> f32 { ... }
+}
+```
+
+### Wiring
+
+- `Player` spawn lit `SelectedHero` pour choisir texture + stats
+- Constantes hardcodées (`MOVE_SPEED`, `JUMP_VELOCITY`, …) deviennent
+  lookups via `Hero::*()`
+- Stat changes appliquées par recharge du joueur OnEnter(Playing) si le
+  héros change
+- Selection persistée dans `SaveData` (champ `selected_hero: Hero`)
+
+### Écran de sélection
+
+- Nouveau `GameState::HeroSelect` ou sub-state de `MainMenu`
+- 3 cartes horizontales : sprite + nom + description + stats simples
+  (vitesse 3/5, saut 4/5, …)
+- Clavier ← → pour sélectionner, Entrée pour valider
+- Souris : clic sur la carte
+- Préview animée : le héros sélectionné fait un idle animé en grand
+
+### Tâches
+
+- [ ] `src/heroes.rs` avec Hero enum + stats
+- [ ] Refactor `src/player.rs` pour utiliser `Res<SelectedHero>` au
+      spawn et dans handle_jump_input / handle_horizontal_input
+- [ ] Sprites des 3 héros dans `gen_assets.rs` : variantes du sprite
+      sheet existant (4 frames idle + run au minimum chacun)
+- [ ] Écran `GameState::HeroSelect` dans `ui.rs`
+- [ ] Bouton "Nouvelle partie" du menu principal → HeroSelect au lieu
+      de Playing directement
+- [ ] Persistance dans `SaveData`
+
+### Estimation : 3-5 jours
+
+---
+
 ## Étape F — Distribution
 
 - [ ] Build release optimisé (`lto = "fat"`, strip)

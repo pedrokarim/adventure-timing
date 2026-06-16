@@ -3,6 +3,7 @@
 //! système, séparé de la physique de collision solide.
 
 use crate::audio::CheckpointReached;
+use crate::items::ActiveEffects;
 use crate::physics::Collider;
 use crate::player::Player;
 use crate::states::{GameState, PlayerDied, PlayerWon};
@@ -58,8 +59,13 @@ fn aabb_overlap(a_pos: Vec3, a_size: Vec2, b_pos: Vec3, b_size: Vec2) -> bool {
 fn check_spike_collision(
     player: Query<(&Transform, &Collider), With<Player>>,
     spikes: Query<(&Transform, &Collider), With<Spike>>,
+    effects: Res<ActiveEffects>,
     mut death: EventWriter<PlayerDied>,
 ) {
+    // Pétale d'ambre : pics inoffensifs.
+    if effects.invincible > 0.0 {
+        return;
+    }
     let Ok((p_t, p_c)) = player.get_single() else {
         return;
     };
@@ -75,6 +81,7 @@ fn check_kill_floor(player: Query<&Transform, With<Player>>, mut death: EventWri
     let Ok(p_t) = player.get_single() else {
         return;
     };
+    // Chute dans le vide : pas d'invincibilité ici, c'est définitif.
     if p_t.translation.y < KILL_FLOOR_Y {
         death.send(PlayerDied);
     }

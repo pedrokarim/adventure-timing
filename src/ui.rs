@@ -86,12 +86,19 @@ struct MenuSelection(usize);
 #[derive(Resource, Default)]
 struct ButtonCount(usize);
 
-/// Police UTF-8 utilisée pour tous les textes UI (la police bundled par
-/// défaut ne couvre pas les accents français).
+/// Polices UI. `display` (Pixelify Sans) pour titres + boutons + tout
+/// le texte hors HUD numérique. `mono` (DejaVu Sans Mono) pour les
+/// chiffres du HUD qui changent souvent : la mono évite que le texte
+/// "danse" à chaque mise à jour.
 #[derive(Resource)]
 struct UiFont {
+    /// Pixelify Sans Regular — UI principale, lisible et game-y.
     regular: Handle<Font>,
+    /// Idem (la police variable sert les deux poids à des tailles
+    /// pixel-art ; on garde le nom pour le code existant).
     bold: Handle<Font>,
+    /// DejaVu Sans Mono — pour le HUD numérique.
+    mono: Handle<Font>,
 }
 
 /// Texte dynamique affichant l'état d'un settings (ex: "Fullscreen : ON").
@@ -109,12 +116,14 @@ pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        // Charger la police en build-time pour qu'elle soit dispo dès
-        // les premiers Startup systems.
+        // Charger les polices en build-time pour qu'elles soient dispo
+        // dès les premiers Startup systems.
         let asset_server = app.world().resource::<AssetServer>().clone();
+        let pixelify = asset_server.load::<Font>("fonts/PixelifySans-Regular.ttf");
         let ui_font = UiFont {
-            regular: asset_server.load("fonts/DejaVuSansMono.ttf"),
-            bold: asset_server.load("fonts/DejaVuSansMono-Bold.ttf"),
+            regular: pixelify.clone(),
+            bold: pixelify,
+            mono: asset_server.load("fonts/DejaVuSansMono.ttf"),
         };
         app.insert_resource(ui_font)
             .init_resource::<MenuSelection>()
@@ -175,7 +184,7 @@ fn setup_hud(mut commands: Commands, font: Res<UiFont>) {
                 TextBundle::from_section(
                     format!("Niveau {} / {}", CURRENT_LEVEL, TOTAL_LEVELS),
                     TextStyle {
-                        font: font.bold.clone(),
+                        font: font.regular.clone(),
                         font_size: 22.0,
                         color: ACCENT_CYAN,
                     },
@@ -186,8 +195,8 @@ fn setup_hud(mut commands: Commands, font: Res<UiFont>) {
                 TextBundle::from_section(
                     "Morts : 0",
                     TextStyle {
-                        font: font.regular.clone(),
-                        font_size: 22.0,
+                        font: font.mono.clone(),
+                        font_size: 20.0,
                         color: HINT_COLOR,
                     },
                 ),
@@ -197,8 +206,8 @@ fn setup_hud(mut commands: Commands, font: Res<UiFont>) {
                 TextBundle::from_section(
                     "Temps : 0.0 s",
                     TextStyle {
-                        font: font.regular.clone(),
-                        font_size: 22.0,
+                        font: font.mono.clone(),
+                        font_size: 20.0,
                         color: HINT_COLOR,
                     },
                 ),
@@ -474,7 +483,7 @@ fn spawn_main_menu(
         spawn_text(
             p,
             font,
-            "↑ ↓ pour naviguer · Entrée pour valider · Souris OK",
+            "Z S pour naviguer  ·  Entree pour valider  ·  Souris OK",
             16.0,
             HINT_COLOR,
         );
