@@ -1,6 +1,10 @@
 mod camera;
+mod effects;
+mod level;
 mod physics;
 mod player;
+mod states;
+mod ui;
 mod world;
 
 use bevy::prelude::*;
@@ -23,10 +27,14 @@ fn main() {
         }))
         .insert_resource(ClearColor(SKY))
         .add_plugins((
+            states::StatesPlugin,
             physics::PhysicsPlugin,
             world::WorldPlugin,
+            level::LevelPlugin,
             player::PlayerPlugin,
+            effects::EffectsPlugin,
             camera::CameraPlugin,
+            ui::UiPlugin,
         ))
         .run();
 }

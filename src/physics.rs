@@ -2,6 +2,7 @@
 //! résolues axe par axe. Pas de moteur dynamique : on contrôle tout
 //! manuellement pour un feel platformer précis.
 
+use crate::states::GameState;
 use bevy::prelude::*;
 
 /// Gravité vers le bas (px/s²). Calibrée pour que les sauts décrits dans
@@ -57,7 +58,8 @@ impl Plugin for PhysicsPlugin {
             Update,
             (apply_gravity, move_and_collide)
                 .chain()
-                .in_set(PhysicsSet),
+                .in_set(PhysicsSet)
+                .run_if(in_state(GameState::Playing)),
         );
     }
 }

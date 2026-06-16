@@ -2,12 +2,15 @@
 //! saut avec coyote time, jump buffer, et saut variable (hauteur
 //! contrôlée par la durée d'appui sur le bouton).
 
+use crate::effects::{ScreenShake, SquashStretch};
+use crate::level::RespawnPoint;
 use crate::physics::{Collider, Grounded, PhysicsSet, Velocity};
+use crate::states::{GameState, PlayerDied, RunStats};
+use crate::world::PLAYER_SPAWN;
 use bevy::prelude::*;
 
 const PLAYER_COLOR: Color = Color::srgb(0.85, 0.30, 0.30);
 const PLAYER_SIZE: Vec2 = Vec2::new(28.0, 44.0);
-const SPAWN_POS: Vec2 = Vec2::new(-600.0, -100.0);
 
 /// Vitesse horizontale max (px/s).
 const MOVE_SPEED: f32 = 280.0;
@@ -50,16 +53,19 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_player).add_systems(
-            Update,
-            (
-                tick_player_timers,
-                handle_horizontal_input,
-                handle_jump_input,
+        app.add_systems(Startup, spawn_player)
+            .add_systems(
+                Update,
+                (
+                    tick_player_timers,
+                    handle_horizontal_input,
+                    handle_jump_input,
+                )
+                    .chain()
+                    .before(PhysicsSet)
+                    .run_if(in_state(GameState::Playing)),
             )
-                .chain()
-                .before(PhysicsSet),
-        );
+            .add_systems(Update, handle_death);
     }
 }
 
@@ -70,16 +76,43 @@ fn spawn_player(mut commands: Commands) {
         Velocity::default(),
         Collider::new(PLAYER_SIZE),
         Grounded::default(),
+        SquashStretch::default(),
         SpriteBundle {
             sprite: Sprite {
                 color: PLAYER_COLOR,
                 custom_size: Some(PLAYER_SIZE),
                 ..default()
             },
-            transform: Transform::from_translation(SPAWN_POS.extend(1.0)),
+            transform: Transform::from_translation(PLAYER_SPAWN.extend(1.0)),
             ..default()
         },
     ));
+}
+
+/// Téléporte le joueur au respawn et incrémente le compteur de morts.
+/// Déclenche aussi un screen shake et reset la vélocité/contrôleur.
+fn handle_death(
+    mut deaths: EventReader<PlayerDied>,
+    mut player: Query<(&mut Transform, &mut Velocity, &mut PlayerController), With<Player>>,
+    respawn: Res<RespawnPoint>,
+    mut stats: ResMut<RunStats>,
+    mut shake: ResMut<ScreenShake>,
+) {
+    if deaths.is_empty() {
+        return;
+    }
+    // On consomme tous les évènements (une mort à la fois suffit).
+    deaths.clear();
+
+    let Ok((mut transform, mut velocity, mut ctrl)) = player.get_single_mut() else {
+        return;
+    };
+
+    transform.translation = respawn.0.extend(transform.translation.z);
+    velocity.0 = Vec2::ZERO;
+    *ctrl = PlayerController::default();
+    stats.deaths += 1;
+    shake.add(0.65);
 }
 
 fn tick_player_timers(time: Res<Time>, mut q: Query<(&mut PlayerController, &Grounded)>) {
