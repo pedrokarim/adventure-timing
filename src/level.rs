@@ -7,11 +7,7 @@ use crate::player::Player;
 use crate::states::{GameState, PlayerDied, PlayerWon};
 use bevy::prelude::*;
 
-const SPIKE_COLOR: Color = Color::srgb(0.85, 0.85, 0.95);
-const CHECKPOINT_INACTIVE: Color = Color::srgb(0.85, 0.75, 0.25);
-const CHECKPOINT_ACTIVE: Color = Color::srgb(0.20, 0.85, 0.35);
-const GOAL_COLOR: Color = Color::srgb(0.95, 0.25, 0.70);
-/// Altitude sous laquelle on considère que le joueur est tombé hors du monde.
+const CHECKPOINT_ACTIVE: Color = Color::srgb(0.45, 1.0, 0.55);
 pub const KILL_FLOOR_Y: f32 = -800.0;
 
 #[derive(Component)]
@@ -26,8 +22,6 @@ pub struct Checkpoint {
     pub triggered: bool,
 }
 
-/// Position de respawn courante. Mise à jour au passage d'un checkpoint
-/// et au démarrage de la partie.
 #[derive(Resource, Debug)]
 pub struct RespawnPoint(pub Vec2);
 
@@ -76,10 +70,7 @@ fn check_spike_collision(
     }
 }
 
-fn check_kill_floor(
-    player: Query<&Transform, With<Player>>,
-    mut death: EventWriter<PlayerDied>,
-) {
+fn check_kill_floor(player: Query<&Transform, With<Player>>, mut death: EventWriter<PlayerDied>) {
     let Ok(p_t) = player.get_single() else {
         return;
     };
@@ -123,34 +114,56 @@ fn check_goal(
     }
 }
 
-/// Helpers de spawn appelés depuis le module world.
-pub fn spawn_spike(commands: &mut Commands, pos: Vec2, size: Vec2) {
-    commands.spawn((
-        Spike,
-        Collider::new(size),
-        SpriteBundle {
-            sprite: Sprite {
-                color: SPIKE_COLOR,
-                custom_size: Some(size),
+// =========================================================== Spawners ===
+
+/// Spawne plusieurs pics côte à côte pour couvrir la zone `(pos, size)`.
+/// Chaque pic utilise sa taille de texture native (32x24) pour préserver
+/// la lecture pixel-art.
+pub fn spawn_spike_field(
+    commands: &mut Commands,
+    asset_server: &AssetServer,
+    center: Vec2,
+    width: f32,
+) {
+    let tex = asset_server.load("sprites/spike.png");
+    let tile = 32.0;
+    let count = ((width / tile).round() as i32).max(1);
+    let total = count as f32 * tile;
+    let start_x = center.x - total * 0.5 + tile * 0.5;
+    for i in 0..count {
+        let x = start_x + i as f32 * tile;
+        commands.spawn((
+            Spike,
+            Collider::new(Vec2::new(tile, 24.0)),
+            SpriteBundle {
+                texture: tex.clone(),
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(tile, 24.0)),
+                    ..default()
+                },
+                transform: Transform::from_translation(Vec3::new(x, center.y, 0.5)),
                 ..default()
             },
-            transform: Transform::from_translation(pos.extend(0.5)),
-            ..default()
-        },
-    ));
+        ));
+    }
 }
 
-pub fn spawn_checkpoint(commands: &mut Commands, pos: Vec2, spawn: Vec2) {
-    let size = Vec2::new(28.0, 60.0);
+pub fn spawn_checkpoint(
+    commands: &mut Commands,
+    asset_server: &AssetServer,
+    pos: Vec2,
+    spawn: Vec2,
+) {
+    let size = Vec2::new(32.0, 64.0);
     commands.spawn((
         Checkpoint {
             spawn_point: spawn,
             triggered: false,
         },
-        Collider::new(size),
+        Collider::new(Vec2::new(20.0, 56.0)),
         SpriteBundle {
+            texture: asset_server.load("sprites/checkpoint.png"),
             sprite: Sprite {
-                color: CHECKPOINT_INACTIVE,
                 custom_size: Some(size),
                 ..default()
             },
@@ -160,14 +173,14 @@ pub fn spawn_checkpoint(commands: &mut Commands, pos: Vec2, spawn: Vec2) {
     ));
 }
 
-pub fn spawn_goal(commands: &mut Commands, pos: Vec2) {
-    let size = Vec2::new(40.0, 80.0);
+pub fn spawn_goal(commands: &mut Commands, asset_server: &AssetServer, pos: Vec2) {
+    let size = Vec2::new(48.0, 80.0);
     commands.spawn((
         Goal,
-        Collider::new(size),
+        Collider::new(Vec2::new(28.0, 70.0)),
         SpriteBundle {
+            texture: asset_server.load("sprites/goal.png"),
             sprite: Sprite {
-                color: GOAL_COLOR,
                 custom_size: Some(size),
                 ..default()
             },
@@ -176,4 +189,3 @@ pub fn spawn_goal(commands: &mut Commands, pos: Vec2) {
         },
     ));
 }
-

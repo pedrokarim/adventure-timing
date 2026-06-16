@@ -31,6 +31,15 @@ bevy = { version = "0.14", default-features = false, features = [
 
 # Compile dépendances en optimisé même en dev (gros gain de perf, surcoût
 # de compilation payé une fois).
+[dev-dependencies]
+# Utilisé uniquement par examples/gen_assets.rs pour générer les PNGs
+# en pixel art. Pas embarqué dans le binaire du jeu.
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+[[example]]
+name = "gen_assets"
+path = "examples/gen_assets.rs"
+
 [profile.dev.package."*"]
 opt-level = 3
 

@@ -1,6 +1,6 @@
 //! Contrôleur du joueur : input, accélération/freinage horizontal,
-//! saut avec coyote time, jump buffer, et saut variable (hauteur
-//! contrôlée par la durée d'appui sur le bouton).
+//! saut avec coyote time, jump buffer, saut variable, plus le rig
+//! d'animation par texture atlas (7 frames, voir examples/gen_assets.rs).
 
 use crate::effects::{ScreenShake, SquashStretch};
 use crate::level::RespawnPoint;
@@ -8,34 +8,35 @@ use crate::physics::{Collider, Grounded, PhysicsSet, Velocity};
 use crate::states::{GameState, PlayerDied, RunStats};
 use crate::world::PLAYER_SPAWN;
 use bevy::prelude::*;
+use bevy::sprite::Anchor;
 
-const PLAYER_COLOR: Color = Color::srgb(0.85, 0.30, 0.30);
+/// Hitbox de gameplay. Plus petite que le sprite (32x48) pour
+/// permettre des passages serrés et une lecture précise des collisions.
 const PLAYER_SIZE: Vec2 = Vec2::new(28.0, 44.0);
 
-/// Vitesse horizontale max (px/s).
+/// Ratio pour aligner le bas du sprite avec le bas du collider.
+/// (sprite 48 px, collider 44 px → anchor 2 px sous le centre)
+const SPRITE_ANCHOR_Y: f32 = -2.0 / 48.0;
+
+const SPRITE_FRAME_SIZE: UVec2 = UVec2::new(32, 48);
+const SPRITE_FRAME_COUNT: u32 = 7;
+
 const MOVE_SPEED: f32 = 280.0;
-/// Combien on accélère par seconde quand on pousse une direction.
 const ACCEL: f32 = 2400.0;
-/// Freinage actif quand aucune direction n'est pressée et qu'on est au sol.
 const GROUND_FRICTION: f32 = 2200.0;
-/// Contrôle aérien réduit pour éviter le glissement infini.
 const AIR_ACCEL: f32 = 1400.0;
 
-/// Vitesse verticale appliquée au moment du saut (px/s).
 const JUMP_VELOCITY: f32 = 760.0;
-/// Si le joueur relâche le bouton tôt, on coupe la vélocité Y à ce
-/// facteur pour créer un saut court — cœur du saut variable.
 const JUMP_CUT_FACTOR: f32 = 0.45;
 
-/// Durée pendant laquelle on peut encore sauter après avoir quitté le sol.
 const COYOTE_TIME: f32 = 0.10;
-/// Durée pendant laquelle un appui saut anticipé reste mémorisé.
 const JUMP_BUFFER: f32 = 0.12;
+
+const RUN_FRAME_TIME: f32 = 0.09;
 
 #[derive(Component)]
 pub struct Player {
-    /// Dernière direction non nulle (1.0 droite, -1.0 gauche). Sert au
-    /// flip horizontal du sprite et au lookahead caméra.
+    /// Dernière direction non nulle (1.0 droite, -1.0 gauche).
     pub facing: f32,
 }
 
@@ -45,18 +46,52 @@ impl Default for Player {
     }
 }
 
-/// État du contrôleur. Regroupé pour éviter d'éparpiller la logique
-/// temporelle (timers) dans plusieurs composants.
 #[derive(Component, Default)]
 pub struct PlayerController {
-    /// Temps depuis qu'on a quitté le sol. Si < COYOTE_TIME, saut autorisé.
     pub coyote_timer: f32,
-    /// Temps depuis le dernier appui saut. Si < JUMP_BUFFER au moment
-    /// d'atterrir, saut auto.
     pub jump_buffer_timer: f32,
-    /// Le joueur est-il en train de monter dans un saut (utile pour le
-    /// saut variable : le cut ne s'applique qu'en phase ascendante).
     pub is_jumping: bool,
+}
+
+/// État d'animation. Sépare la logique "quelle pose afficher" de l'index
+/// concret dans l'atlas, ce qui permet de réorganiser le sprite sheet
+/// sans toucher au reste.
+#[derive(Component)]
+pub struct PlayerAnimation {
+    pub state: AnimState,
+    pub timer: Timer,
+    pub run_step: usize,
+}
+
+impl Default for PlayerAnimation {
+    fn default() -> Self {
+        Self {
+            state: AnimState::Idle,
+            timer: Timer::from_seconds(RUN_FRAME_TIME, TimerMode::Repeating),
+            run_step: 0,
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+pub enum AnimState {
+    Idle,
+    Run,
+    Jump,
+    Fall,
+}
+
+impl AnimState {
+    /// Index dans le sprite sheet. Pour Run on retourne le premier frame
+    /// du cycle ; le système d'animation gère ensuite le step.
+    fn base_index(self) -> usize {
+        match self {
+            AnimState::Idle => 0,
+            AnimState::Run => 1,
+            AnimState::Jump => 5,
+            AnimState::Fall => 6,
+        }
+    }
 }
 
 pub struct PlayerPlugin;
@@ -75,32 +110,50 @@ impl Plugin for PlayerPlugin {
                     .before(PhysicsSet)
                     .run_if(in_state(GameState::Playing)),
             )
-            .add_systems(Update, handle_death);
+            // L'animation tourne aussi en pause/menu (lisibilité visuelle).
+            .add_systems(Update, (handle_death, animate_player));
     }
 }
 
-fn spawn_player(mut commands: Commands) {
+fn spawn_player(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+) {
+    let texture = asset_server.load("sprites/player.png");
+    let layout = TextureAtlasLayout::from_grid(
+        SPRITE_FRAME_SIZE,
+        SPRITE_FRAME_COUNT,
+        1,
+        None,
+        None,
+    );
+    let layout_handle = layouts.add(layout);
+
     commands.spawn((
         Player::default(),
         PlayerController::default(),
+        PlayerAnimation::default(),
         Velocity::default(),
         Collider::new(PLAYER_SIZE),
         Grounded::default(),
         SquashStretch::default(),
         SpriteBundle {
+            texture,
             sprite: Sprite {
-                color: PLAYER_COLOR,
-                custom_size: Some(PLAYER_SIZE),
+                anchor: Anchor::Custom(Vec2::new(0.0, SPRITE_ANCHOR_Y)),
                 ..default()
             },
             transform: Transform::from_translation(PLAYER_SPAWN.extend(1.0)),
             ..default()
         },
+        TextureAtlas {
+            layout: layout_handle,
+            index: 0,
+        },
     ));
 }
 
-/// Téléporte le joueur au respawn et incrémente le compteur de morts.
-/// Déclenche aussi un screen shake et reset la vélocité/contrôleur.
 fn handle_death(
     mut deaths: EventReader<PlayerDied>,
     mut player: Query<(&mut Transform, &mut Velocity, &mut PlayerController), With<Player>>,
@@ -111,7 +164,6 @@ fn handle_death(
     if deaths.is_empty() {
         return;
     }
-    // On consomme tous les évènements (une mort à la fois suffit).
     deaths.clear();
 
     let Ok((mut transform, mut velocity, mut ctrl)) = player.get_single_mut() else {
@@ -133,7 +185,6 @@ fn tick_player_timers(time: Res<Time>, mut q: Query<(&mut PlayerController, &Gro
         } else {
             ctrl.coyote_timer += dt;
         }
-        // Le jump buffer compte toujours, peu importe l'état au sol.
         ctrl.jump_buffer_timer += dt;
     }
 }
@@ -176,41 +227,81 @@ fn handle_jump_input(
     keys: Res<ButtonInput<KeyCode>>,
     mut q: Query<(&mut Velocity, &mut PlayerController, &Grounded), With<Player>>,
 ) {
-    let jump_pressed =
-        keys.just_pressed(KeyCode::Space) || keys.just_pressed(KeyCode::ArrowUp)
-            || keys.just_pressed(KeyCode::KeyW);
-    let jump_released =
-        keys.just_released(KeyCode::Space) || keys.just_released(KeyCode::ArrowUp)
-            || keys.just_released(KeyCode::KeyW);
+    let jump_pressed = keys.just_pressed(KeyCode::Space)
+        || keys.just_pressed(KeyCode::ArrowUp)
+        || keys.just_pressed(KeyCode::KeyW);
+    let jump_released = keys.just_released(KeyCode::Space)
+        || keys.just_released(KeyCode::ArrowUp)
+        || keys.just_released(KeyCode::KeyW);
 
     for (mut velocity, mut ctrl, grounded) in &mut q {
         if jump_pressed {
             ctrl.jump_buffer_timer = 0.0;
         }
 
-        // Saut effectif : buffer récent ET (au sol OU encore dans la
-        // fenêtre coyote time). Le coyote_timer est à 0 quand grounded,
-        // donc la condition couvre les deux cas.
         let can_jump = ctrl.coyote_timer < COYOTE_TIME || grounded.0;
         let buffered = ctrl.jump_buffer_timer < JUMP_BUFFER;
 
         if can_jump && buffered {
             velocity.0.y = JUMP_VELOCITY;
             ctrl.is_jumping = true;
-            // On consomme buffer et coyote pour éviter un re-déclenchement
             ctrl.jump_buffer_timer = JUMP_BUFFER;
             ctrl.coyote_timer = COYOTE_TIME;
         }
 
-        // Saut variable : si on relâche tôt en montant, on coupe.
         if jump_released && ctrl.is_jumping && velocity.0.y > 0.0 {
             velocity.0.y *= JUMP_CUT_FACTOR;
             ctrl.is_jumping = false;
         }
 
-        // On finit le "is_jumping" dès qu'on amorce la descente.
         if velocity.0.y <= 0.0 {
             ctrl.is_jumping = false;
+        }
+    }
+}
+
+/// Détermine l'état d'animation à partir de la vélocité et du contact
+/// sol, puis met à jour l'index de la TextureAtlas du joueur.
+fn animate_player(
+    time: Res<Time>,
+    mut q: Query<(
+        &Velocity,
+        &Grounded,
+        &mut PlayerAnimation,
+        &mut TextureAtlas,
+    )>,
+) {
+    for (velocity, grounded, mut anim, mut atlas) in &mut q {
+        let new_state = if !grounded.0 {
+            if velocity.0.y > 0.0 {
+                AnimState::Jump
+            } else {
+                AnimState::Fall
+            }
+        } else if velocity.0.x.abs() > 30.0 {
+            AnimState::Run
+        } else {
+            AnimState::Idle
+        };
+
+        // Changement d'état : reset du cycle.
+        if new_state != anim.state {
+            anim.state = new_state;
+            anim.run_step = 0;
+            anim.timer.reset();
+        }
+
+        match anim.state {
+            AnimState::Run => {
+                anim.timer.tick(time.delta());
+                if anim.timer.just_finished() {
+                    anim.run_step = (anim.run_step + 1) % 4;
+                }
+                atlas.index = AnimState::Run.base_index() + anim.run_step;
+            }
+            other => {
+                atlas.index = other.base_index();
+            }
         }
     }
 }

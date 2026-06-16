@@ -27,7 +27,11 @@ impl Plugin for CameraPlugin {
 }
 
 fn spawn_camera(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+    let mut bundle = Camera2dBundle::default();
+    // Zoom : on divise par 2 la zone visible pour que les sprites
+    // pixel-art (32x48) occupent une part lisible de l'écran.
+    bundle.projection.scale = 0.5;
+    commands.spawn(bundle);
 }
 
 fn follow_player(

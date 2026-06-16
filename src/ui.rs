@@ -266,6 +266,8 @@ fn reset_player_for_run(
 
     for (mut chk, mut sprite) in &mut checkpoints {
         chk.triggered = false;
-        sprite.color = Color::srgb(0.85, 0.75, 0.25);
+        // Texture du checkpoint affichée telle quelle (jaune). La couleur
+        // verte est appliquée par tint quand le checkpoint est touché.
+        sprite.color = Color::WHITE;
     }
 }

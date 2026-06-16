@@ -1,18 +1,25 @@
-//! Niveau de test dessiné en dur. La structure progresse de gauche à
-//! droite : zone d'apprentissage du saut, première section avec pics,
-//! checkpoint, traversée verticale, descente, gros gap, drapeau final.
+//! Construction du niveau. Le sol et les plateformes utilisent des
+//! textures tilées (ImageScaleMode::Tiled) afin que les motifs se
+//! répètent à l'identique quelle que soit la taille du solide.
 
-use crate::level::{spawn_checkpoint, spawn_goal, spawn_spike};
+use crate::level::{spawn_checkpoint, spawn_goal, spawn_spike_field};
 use crate::physics::{Collider, Solid};
 use bevy::prelude::*;
 
-const GROUND_COLOR: Color = Color::srgb(0.18, 0.42, 0.22);
-const PLATFORM_COLOR: Color = Color::srgb(0.55, 0.38, 0.22);
-const WALL_COLOR: Color = Color::srgb(0.40, 0.28, 0.18);
-
-/// Position de spawn initiale du joueur. Doit correspondre au respawn
-/// par défaut dans level.rs.
 pub const PLAYER_SPAWN: Vec2 = Vec2::new(-600.0, -100.0);
+
+/// Asset utilisé pour rendre un solide tilé.
+#[derive(Clone, Copy)]
+enum Tile {
+    /// Sol naturel (terre + bande d'herbe au sommet).
+    Ground,
+    /// Plateforme en bois flottante.
+    Platform,
+    /// Mur de pierre (pas de bande d'herbe).
+    Wall,
+}
+
+const GRASS_STRIP_HEIGHT: f32 = 12.0;
 
 pub struct WorldPlugin;
 
@@ -22,77 +29,108 @@ impl Plugin for WorldPlugin {
     }
 }
 
-fn spawn_level(mut commands: Commands) {
+fn spawn_level(mut commands: Commands, asset_server: Res<AssetServer>) {
     // === Section 0 : zone d'échauffement ===
-    // Sol large où on apprend à marcher / sauter sans risque.
-    spawn_solid(&mut commands, Vec2::new(-700.0, -320.0), Vec2::new(800.0, 80.0), GROUND_COLOR);
+    spawn_solid(&mut commands, &asset_server, Vec2::new(-700.0, -320.0), Vec2::new(800.0, 80.0), Tile::Ground);
 
     // === Section 1 : escaliers de plateformes ===
-    spawn_solid(&mut commands, Vec2::new(-180.0, -240.0), Vec2::new(160.0, 24.0), PLATFORM_COLOR);
-    spawn_solid(&mut commands, Vec2::new(50.0, -160.0), Vec2::new(160.0, 24.0), PLATFORM_COLOR);
-    spawn_solid(&mut commands, Vec2::new(280.0, -80.0), Vec2::new(160.0, 24.0), PLATFORM_COLOR);
+    spawn_solid(&mut commands, &asset_server, Vec2::new(-180.0, -240.0), Vec2::new(160.0, 32.0), Tile::Platform);
+    spawn_solid(&mut commands, &asset_server, Vec2::new(50.0, -160.0), Vec2::new(160.0, 32.0), Tile::Platform);
+    spawn_solid(&mut commands, &asset_server, Vec2::new(280.0, -80.0), Vec2::new(160.0, 32.0), Tile::Platform);
 
-    // Premier checkpoint en haut des escaliers.
     spawn_checkpoint(
         &mut commands,
-        Vec2::new(280.0, -38.0),
-        Vec2::new(280.0, -60.0),
+        &asset_server,
+        Vec2::new(280.0, -32.0),
+        Vec2::new(280.0, -32.0),
     );
 
     // === Section 2 : passage avec pics ===
-    // Sol bas avec une rangée de pics, oblige à sauter de plateforme en plateforme.
-    spawn_solid(&mut commands, Vec2::new(620.0, -320.0), Vec2::new(700.0, 80.0), GROUND_COLOR);
-    for i in 0..7 {
-        let x = 380.0 + (i as f32) * 80.0;
-        spawn_spike(&mut commands, Vec2::new(x, -268.0), Vec2::new(50.0, 26.0));
-    }
-    // Plateformes au-dessus pour traverser.
-    spawn_solid(&mut commands, Vec2::new(450.0, -120.0), Vec2::new(120.0, 24.0), PLATFORM_COLOR);
-    spawn_solid(&mut commands, Vec2::new(640.0, -80.0), Vec2::new(120.0, 24.0), PLATFORM_COLOR);
-    spawn_solid(&mut commands, Vec2::new(840.0, -120.0), Vec2::new(120.0, 24.0), PLATFORM_COLOR);
+    spawn_solid(&mut commands, &asset_server, Vec2::new(620.0, -320.0), Vec2::new(700.0, 80.0), Tile::Ground);
+    spawn_spike_field(&mut commands, &asset_server, Vec2::new(620.0, -268.0), 448.0);
+
+    // Plateformes au-dessus pour traverser
+    spawn_solid(&mut commands, &asset_server, Vec2::new(450.0, -120.0), Vec2::new(128.0, 32.0), Tile::Platform);
+    spawn_solid(&mut commands, &asset_server, Vec2::new(640.0, -80.0), Vec2::new(128.0, 32.0), Tile::Platform);
+    spawn_solid(&mut commands, &asset_server, Vec2::new(840.0, -120.0), Vec2::new(128.0, 32.0), Tile::Platform);
 
     // === Section 3 : ascension verticale ===
-    // Mur à droite force à monter.
-    spawn_solid(&mut commands, Vec2::new(1020.0, -120.0), Vec2::new(40.0, 240.0), WALL_COLOR);
+    spawn_solid(&mut commands, &asset_server, Vec2::new(1020.0, -120.0), Vec2::new(64.0, 256.0), Tile::Wall);
 
-    spawn_solid(&mut commands, Vec2::new(880.0, 20.0), Vec2::new(120.0, 24.0), PLATFORM_COLOR);
-    spawn_solid(&mut commands, Vec2::new(700.0, 120.0), Vec2::new(120.0, 24.0), PLATFORM_COLOR);
-    spawn_solid(&mut commands, Vec2::new(880.0, 220.0), Vec2::new(120.0, 24.0), PLATFORM_COLOR);
-    spawn_solid(&mut commands, Vec2::new(1080.0, 320.0), Vec2::new(180.0, 24.0), PLATFORM_COLOR);
+    spawn_solid(&mut commands, &asset_server, Vec2::new(880.0, 20.0), Vec2::new(128.0, 32.0), Tile::Platform);
+    spawn_solid(&mut commands, &asset_server, Vec2::new(700.0, 120.0), Vec2::new(128.0, 32.0), Tile::Platform);
+    spawn_solid(&mut commands, &asset_server, Vec2::new(880.0, 220.0), Vec2::new(128.0, 32.0), Tile::Platform);
+    spawn_solid(&mut commands, &asset_server, Vec2::new(1080.0, 320.0), Vec2::new(192.0, 32.0), Tile::Platform);
 
-    // Deuxième checkpoint au sommet, juste avant la traversée finale.
     spawn_checkpoint(
         &mut commands,
-        Vec2::new(1080.0, 362.0),
-        Vec2::new(1080.0, 340.0),
+        &asset_server,
+        Vec2::new(1080.0, 368.0),
+        Vec2::new(1080.0, 368.0),
     );
 
     // === Section 4 : gap périlleux ===
-    // Trois piliers étroits espacés au-dessus du vide.
-    spawn_solid(&mut commands, Vec2::new(1320.0, 300.0), Vec2::new(80.0, 24.0), PLATFORM_COLOR);
-    spawn_solid(&mut commands, Vec2::new(1560.0, 280.0), Vec2::new(80.0, 24.0), PLATFORM_COLOR);
-    spawn_solid(&mut commands, Vec2::new(1800.0, 260.0), Vec2::new(80.0, 24.0), PLATFORM_COLOR);
+    spawn_solid(&mut commands, &asset_server, Vec2::new(1320.0, 300.0), Vec2::new(96.0, 32.0), Tile::Platform);
+    spawn_solid(&mut commands, &asset_server, Vec2::new(1560.0, 280.0), Vec2::new(96.0, 32.0), Tile::Platform);
+    spawn_solid(&mut commands, &asset_server, Vec2::new(1800.0, 260.0), Vec2::new(96.0, 32.0), Tile::Platform);
 
     // === Section 5 : arrivée ===
-    spawn_solid(&mut commands, Vec2::new(2100.0, 220.0), Vec2::new(360.0, 24.0), GROUND_COLOR);
-    spawn_goal(&mut commands, Vec2::new(2200.0, 272.0));
-
-    // Mur final pour borner le niveau.
-    spawn_solid(&mut commands, Vec2::new(2300.0, 270.0), Vec2::new(40.0, 120.0), WALL_COLOR);
+    spawn_solid(&mut commands, &asset_server, Vec2::new(2100.0, 220.0), Vec2::new(384.0, 32.0), Tile::Ground);
+    spawn_goal(&mut commands, &asset_server, Vec2::new(2200.0, 276.0));
+    spawn_solid(&mut commands, &asset_server, Vec2::new(2300.0, 270.0), Vec2::new(64.0, 128.0), Tile::Wall);
 }
 
-fn spawn_solid(commands: &mut Commands, pos: Vec2, size: Vec2, color: Color) {
+fn spawn_solid(
+    commands: &mut Commands,
+    asset_server: &AssetServer,
+    pos: Vec2,
+    size: Vec2,
+    tile: Tile,
+) {
+    let (texture_path, tile_y) = match tile {
+        Tile::Ground => ("sprites/tile_ground.png", true),
+        Tile::Platform => ("sprites/tile_platform.png", true),
+        Tile::Wall => ("sprites/tile_wall.png", true),
+    };
+
     commands.spawn((
         SpriteBundle {
+            texture: asset_server.load(texture_path),
             sprite: Sprite {
-                color,
                 custom_size: Some(size),
                 ..default()
             },
             transform: Transform::from_translation(pos.extend(0.0)),
             ..default()
         },
+        ImageScaleMode::Tiled {
+            tile_x: true,
+            tile_y,
+            stretch_value: 1.0,
+        },
         Collider::new(size),
         Solid,
     ));
+
+    // Pour les sols, on superpose une bande d'herbe non-collidable au
+    // sommet du solide.
+    if matches!(tile, Tile::Ground) {
+        let grass_y = pos.y + size.y * 0.5 + GRASS_STRIP_HEIGHT * 0.5 - 4.0;
+        commands.spawn((
+            SpriteBundle {
+                texture: asset_server.load("sprites/tile_grass.png"),
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(size.x, GRASS_STRIP_HEIGHT)),
+                    ..default()
+                },
+                transform: Transform::from_translation(Vec3::new(pos.x, grass_y, 0.1)),
+                ..default()
+            },
+            ImageScaleMode::Tiled {
+                tile_x: true,
+                tile_y: false,
+                stretch_value: 1.0,
+            },
+        ));
+    }
 }

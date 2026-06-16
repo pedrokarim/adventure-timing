@@ -33,7 +33,7 @@ contre un mur, puis trois piliers étroits avant le drapeau rose.
 - Le **drapeau rose** termine le niveau et affiche le temps + le nombre
   de morts.
 
-## Features v1
+## Features v1.1
 
 - Contrôleur platformer kinematic complet (coyote, buffer, saut variable)
 - Collisions AABB axe par axe contre solides statiques
@@ -44,6 +44,20 @@ contre un mur, puis trois piliers étroits avant le drapeau rose.
 - Screen shake à l'atterrissage et à la mort
 - Particules de poussière au saut et à l'atterrissage
 - Caméra qui suit avec lookahead et lerp framerate-indépendant
+- **Sprites pixel art procéduraux** (joueur 7 frames animées, tiles
+  herbe/terre/bois/pierre, pics, drapeaux) générés par
+  `cargo run --example gen_assets`
+
+## Régénérer les assets
+
+Tous les sprites sont générés par un binaire dédié, pas de fichier
+binaire commité « à la main ». Pour les modifier ou les régénérer :
+
+```bash
+cargo run --example gen_assets
+```
+
+Les PNGs atterrissent dans `assets/sprites/`.
 
 ## Documentation
 
