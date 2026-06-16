@@ -2,6 +2,24 @@
 
 Side-scroller platformer en Rust.
 
+## Jouer
+
+```bash
+cargo run --release   # build optimisé, recommandé pour tester le feel
+cargo run             # build dev rapide après la première compilation
+```
+
+Contrôles :
+
+| Action | Touche |
+|---|---|
+| Aller à gauche | `Q` / `←` |
+| Aller à droite | `D` / `→` |
+| Sauter | `Espace` / `W` / `↑` |
+
+Le saut est variable : un tap court = petit saut, maintenir = saut haut.
+Coyote time (100 ms) et jump buffer (120 ms) intégrés.
+
 ## Documentation
 
 - [Choix du moteur](docs/01-choix-moteur.md) — Bevy vs Macroquad vs ggez
