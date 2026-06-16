@@ -1,7 +1,7 @@
 //! Effets visuels : screen shake de la caméra, squash & stretch du
 //! joueur, particules de poussière au saut et à l'atterrissage.
 
-use crate::audio::PlayerLanded;
+use crate::audio::{PlayerAirJumped, PlayerLanded};
 use crate::physics::{Grounded, Velocity};
 use crate::player::Player;
 use bevy::prelude::*;
@@ -55,6 +55,7 @@ impl Plugin for EffectsPlugin {
             (
                 squash_stretch_system,
                 spawn_dust_on_events,
+                spawn_air_jump_ring,
                 tick_particles,
                 apply_screen_shake,
             ),
@@ -168,6 +169,47 @@ fn tick_particles(
 
         let t = particle.remaining / particle.initial;
         sprite.color.set_alpha(t.clamp(0.0, 1.0) * 0.85);
+    }
+}
+
+/// Burst circulaire de particules à la position du joueur quand il
+/// active son double saut. Plus aérien que la poussière au sol (couleur
+/// cyan, partent en cercle).
+fn spawn_air_jump_ring(
+    mut commands: Commands,
+    mut events: EventReader<PlayerAirJumped>,
+    player: Query<&Transform, With<Player>>,
+) {
+    if events.is_empty() {
+        return;
+    }
+    events.clear();
+    let Ok(transform) = player.get_single() else {
+        return;
+    };
+    let pos = transform.translation.truncate();
+    const RING_COLOR: Color = Color::srgba(0.70, 0.94, 1.00, 0.90);
+    const COUNT: u32 = 12;
+    const SPEED: f32 = 180.0;
+    for i in 0..COUNT {
+        let angle = (i as f32 / COUNT as f32) * std::f32::consts::TAU;
+        let velocity = Vec2::new(angle.cos(), angle.sin().abs() * 0.4) * SPEED;
+        commands.spawn((
+            Particle {
+                velocity,
+                remaining: 0.35,
+                initial: 0.35,
+            },
+            SpriteBundle {
+                sprite: Sprite {
+                    color: RING_COLOR,
+                    custom_size: Some(Vec2::splat(3.0)),
+                    ..default()
+                },
+                transform: Transform::from_translation(Vec3::new(pos.x, pos.y - 12.0, 2.0)),
+                ..default()
+            },
+        ));
     }
 }
 

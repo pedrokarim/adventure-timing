@@ -13,7 +13,7 @@ use crate::physics::{Grounded, Velocity};
 use crate::player::{Player, PlayerController};
 use crate::save::{save_data, save_settings, SaveData, Settings};
 use crate::states::{GameState, PlayerWon, RunStats};
-use crate::world::PLAYER_SPAWN;
+use crate::world::{CURRENT_LEVEL, PLAYER_SPAWN, TOTAL_LEVELS};
 use bevy::app::AppExit;
 use bevy::prelude::*;
 use bevy::text::Font;
@@ -50,6 +50,9 @@ struct HudDeaths;
 
 #[derive(Component)]
 struct HudTime;
+
+#[derive(Component)]
+struct HudLevel;
 
 #[derive(Component)]
 struct TitleText;
@@ -167,6 +170,17 @@ fn setup_hud(mut commands: Commands, font: Res<UiFont>) {
             },
         ))
         .with_children(|p| {
+            p.spawn((
+                HudLevel,
+                TextBundle::from_section(
+                    format!("Niveau {} / {}", CURRENT_LEVEL, TOTAL_LEVELS),
+                    TextStyle {
+                        font: font.bold.clone(),
+                        font_size: 22.0,
+                        color: ACCENT_CYAN,
+                    },
+                ),
+            ));
             p.spawn((
                 HudDeaths,
                 TextBundle::from_section(
@@ -408,6 +422,13 @@ fn spawn_main_menu(
         .with_children(|p| {
             spawn_title(p, font, "Adventure Timing");
             spawn_subtitle(p, font, "Une nuit sans étoiles à traverser");
+            spawn_text(
+                p,
+                font,
+                &format!("{} niveau{}  ·  double saut", TOTAL_LEVELS, if TOTAL_LEVELS > 1 { "x" } else { "" }),
+                18.0,
+                SUBTITLE_COLOR,
+            );
 
         if save.runs_completed > 0 {
             let best_time = save
@@ -691,6 +712,13 @@ fn spawn_win_screen(
 
     commands.entity(root).with_children(|p| {
         spawn_text(p, font, "Bravo !", 80.0, ACCENT_CYAN);
+        spawn_text(
+            p,
+            font,
+            &format!("Niveau {CURRENT_LEVEL} / {TOTAL_LEVELS} terminé"),
+            22.0,
+            ACCENT_AMBER,
+        );
         spawn_text(
             p,
             font,

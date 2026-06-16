@@ -2,7 +2,7 @@
 //! saut avec coyote time, jump buffer, saut variable, plus le rig
 //! d'animation par texture atlas (7 frames, voir examples/gen_assets.rs).
 
-use crate::audio::PlayerJumped;
+use crate::audio::{PlayerAirJumped, PlayerJumped};
 use crate::effects::{ScreenShake, SquashStretch};
 use crate::level::RespawnPoint;
 use crate::physics::{Collider, Grounded, PhysicsSet, Velocity};
@@ -22,16 +22,32 @@ const SPRITE_ANCHOR_Y: f32 = -3.0 / 36.0;
 const SPRITE_FRAME_SIZE: UVec2 = UVec2::new(24, 36);
 const SPRITE_FRAME_COUNT: u32 = 7;
 
-const MOVE_SPEED: f32 = 280.0;
-const ACCEL: f32 = 2400.0;
-const GROUND_FRICTION: f32 = 2200.0;
-const AIR_ACCEL: f32 = 1400.0;
+/// Vitesse horizontale max (px/s). Plus rapide qu'avant pour compenser
+/// les distances visibles avec la nouvelle caméra.
+const MOVE_SPEED: f32 = 320.0;
+/// Accélération au sol. Volontairement plus basse pour donner du poids.
+const ACCEL: f32 = 1900.0;
+/// Décélération naturelle. Plus basse → on garde plus d'inertie en
+/// relâchant la touche.
+const GROUND_FRICTION: f32 = 1400.0;
+/// Contrôle aérien renforcé pour matcher le double saut et les
+/// distances allongées.
+const AIR_ACCEL: f32 = 1700.0;
+/// Multiplicateur d'accélération quand on pousse dans le sens opposé
+/// au mouvement courant — pour répondre vite aux demi-tours.
+const TURNAROUND_BOOST: f32 = 1.7;
 
 const JUMP_VELOCITY: f32 = 760.0;
+/// Vitesse du saut en l'air. Un peu moins fort pour valoriser le saut au
+/// sol tout en gardant un boost utile sur les sections aériennes.
+const AIR_JUMP_VELOCITY: f32 = 680.0;
 const JUMP_CUT_FACTOR: f32 = 0.45;
 
 const COYOTE_TIME: f32 = 0.10;
 const JUMP_BUFFER: f32 = 0.12;
+
+/// Nombre de sauts utilisables en l'air après avoir quitté le sol.
+const MAX_AIR_JUMPS: u8 = 1;
 
 const RUN_FRAME_TIME: f32 = 0.09;
 
@@ -47,11 +63,24 @@ impl Default for Player {
     }
 }
 
-#[derive(Component, Default)]
+#[derive(Component)]
 pub struct PlayerController {
     pub coyote_timer: f32,
     pub jump_buffer_timer: f32,
     pub is_jumping: bool,
+    /// Sauts encore disponibles en l'air. Rechargé au contact du sol.
+    pub air_jumps_remaining: u8,
+}
+
+impl Default for PlayerController {
+    fn default() -> Self {
+        Self {
+            coyote_timer: 0.0,
+            jump_buffer_timer: 0.0,
+            is_jumping: false,
+            air_jumps_remaining: MAX_AIR_JUMPS,
+        }
+    }
 }
 
 /// État d'animation. Sépare la logique "quelle pose afficher" de l'index
@@ -183,6 +212,8 @@ fn tick_player_timers(time: Res<Time>, mut q: Query<(&mut PlayerController, &Gro
     for (mut ctrl, grounded) in &mut q {
         if grounded.0 {
             ctrl.coyote_timer = 0.0;
+            // Le contact sol recharge le double saut.
+            ctrl.air_jumps_remaining = MAX_AIR_JUMPS;
         } else {
             ctrl.coyote_timer += dt;
         }
@@ -206,9 +237,13 @@ fn handle_horizontal_input(
 
     for (mut velocity, grounded, mut player, mut sprite) in &mut q {
         let target = dir * MOVE_SPEED;
-        let accel = if grounded.0 { ACCEL } else { AIR_ACCEL };
+        let base_accel = if grounded.0 { ACCEL } else { AIR_ACCEL };
 
         if dir != 0.0 {
+            // Boost en demi-tour pour répondre vite quand on change de
+            // sens, sans pour autant casser le poids du mouvement normal.
+            let opposite = velocity.0.x * dir < 0.0;
+            let accel = if opposite { base_accel * TURNAROUND_BOOST } else { base_accel };
             let delta = (target - velocity.0.x).clamp(-accel * dt, accel * dt);
             velocity.0.x += delta;
             player.facing = dir;
@@ -228,6 +263,7 @@ fn handle_jump_input(
     keys: Res<ButtonInput<KeyCode>>,
     mut q: Query<(&mut Velocity, &mut PlayerController, &Grounded), With<Player>>,
     mut jumped: EventWriter<PlayerJumped>,
+    mut air_jumped: EventWriter<PlayerAirJumped>,
 ) {
     let jump_pressed = keys.just_pressed(KeyCode::Space)
         || keys.just_pressed(KeyCode::ArrowUp)
@@ -241,15 +277,25 @@ fn handle_jump_input(
             ctrl.jump_buffer_timer = 0.0;
         }
 
-        let can_jump = ctrl.coyote_timer < COYOTE_TIME || grounded.0;
+        let can_jump_ground = ctrl.coyote_timer < COYOTE_TIME || grounded.0;
+        let can_jump_air = !grounded.0
+            && ctrl.coyote_timer >= COYOTE_TIME
+            && ctrl.air_jumps_remaining > 0;
         let buffered = ctrl.jump_buffer_timer < JUMP_BUFFER;
 
-        if can_jump && buffered {
+        if buffered && can_jump_ground {
             velocity.0.y = JUMP_VELOCITY;
             ctrl.is_jumping = true;
             ctrl.jump_buffer_timer = JUMP_BUFFER;
             ctrl.coyote_timer = COYOTE_TIME;
             jumped.send(PlayerJumped);
+        } else if buffered && can_jump_air {
+            velocity.0.y = AIR_JUMP_VELOCITY;
+            ctrl.is_jumping = true;
+            ctrl.air_jumps_remaining -= 1;
+            ctrl.jump_buffer_timer = JUMP_BUFFER;
+            jumped.send(PlayerJumped);
+            air_jumped.send(PlayerAirJumped);
         }
 
         if jump_released && ctrl.is_jumping && velocity.0.y > 0.0 {

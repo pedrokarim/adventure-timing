@@ -19,28 +19,28 @@ struct ParallaxLayer {
 }
 
 const LAYERS: &[ParallaxLayer] = &[
-    // Pics lointains avec étoiles
+    // Nuages + montagnes lointaines en haut du ciel
     ParallaxLayer {
         factor: 0.10,
         texture: "sprites/parallax_back.png",
-        y: 60.0,
-        size: Vec2::new(512.0, 360.0),
+        y: -100.0,
+        size: Vec2::new(512.0, 320.0),
         z: -12.0,
     },
-    // Pics moyens
+    // Montagnes intermédiaires (rose moyen)
     ParallaxLayer {
         factor: 0.30,
         texture: "sprites/parallax_mid.png",
-        y: -30.0,
-        size: Vec2::new(512.0, 280.0),
+        y: -200.0,
+        size: Vec2::new(512.0, 260.0),
         z: -11.0,
     },
-    // Forêt en silhouette devant
+    // Pylônes silhouettes (horizon, juste au-dessus du sol gameplay)
     ParallaxLayer {
         factor: 0.55,
         texture: "sprites/parallax_front.png",
-        y: -160.0,
-        size: Vec2::new(512.0, 200.0),
+        y: -280.0,
+        size: Vec2::new(512.0, 180.0),
         z: -10.0,
     },
 ];

@@ -8,6 +8,11 @@ use bevy::prelude::*;
 
 pub const PLAYER_SPAWN: Vec2 = Vec2::new(-600.0, -100.0);
 
+/// Numéro du niveau courant (1-indexed). Le jeu n'embarque qu'un seul
+/// niveau pour l'instant ; à mettre à jour quand on en ajoute.
+pub const CURRENT_LEVEL: u32 = 1;
+pub const TOTAL_LEVELS: u32 = 1;
+
 /// Asset utilisé pour rendre un solide tilé.
 #[derive(Clone, Copy)]
 enum Tile {

@@ -23,19 +23,18 @@ const SKIN_DK: Rgba<u8> = Rgba([140, 146, 174, 255]);
 const HAIR: Rgba<u8> = Rgba([232, 236, 250, 255]);
 const EYE: Rgba<u8> = Rgba([8, 8, 16, 255]);
 
-// Terre / sol — légèrement plus froid que la pierre pour
-// distinguer les couches sans casser la palette
-const DIRT: Rgba<u8> = Rgba([32, 36, 44, 255]);
-const DIRT_DK: Rgba<u8> = Rgba([18, 22, 30, 255]);
-const DIRT_LT: Rgba<u8> = Rgba([54, 58, 70, 255]);
-const MOSS: Rgba<u8> = Rgba([56, 92, 92, 255]);
-const MOSS_DK: Rgba<u8> = Rgba([34, 62, 64, 255]);
-const MOSS_LT: Rgba<u8> = Rgba([96, 140, 130, 255]);
+// Terre / sol — wine-pink foncé pour matcher camille-unknown-home
+const DIRT: Rgba<u8> = Rgba([84, 36, 60, 255]);
+const DIRT_DK: Rgba<u8> = Rgba([54, 20, 42, 255]);
+const DIRT_LT: Rgba<u8> = Rgba([122, 60, 86, 255]);
+const MOSS: Rgba<u8> = Rgba([196, 88, 110, 255]);
+const MOSS_DK: Rgba<u8> = Rgba([140, 56, 84, 255]);
+const MOSS_LT: Rgba<u8> = Rgba([232, 130, 152, 255]);
 
-// Pierre / mur
-const STONE: Rgba<u8> = Rgba([48, 58, 72, 255]);
-const STONE_DK: Rgba<u8> = Rgba([24, 30, 42, 255]);
-const STONE_LT: Rgba<u8> = Rgba([76, 88, 104, 255]);
+// Pierre / mur — pink désaturé
+const STONE: Rgba<u8> = Rgba([148, 88, 112, 255]);
+const STONE_DK: Rgba<u8> = Rgba([92, 48, 70, 255]);
+const STONE_LT: Rgba<u8> = Rgba([196, 132, 152, 255]);
 
 // Accents lumineux
 const CYAN: Rgba<u8> = Rgba([108, 196, 232, 255]);
@@ -550,29 +549,51 @@ fn make_goal() {
 // ====================================================== Parallax bg ===
 
 fn make_parallax_back() {
-    // 256x180 : silhouettes lointaines de pics + étoiles éparses.
-    // Tilable en X seulement.
-    let mut img = RgbaImage::from_pixel(256, 180, TR);
+    // 512x320 : montagnes roses lointaines + nuages puffies. Ambiance
+    // camille-unknown-home appliquée au gameplay. Tilable en X.
+    let mut img = RgbaImage::from_pixel(512, 320, TR);
 
-    // Étoiles dispersées dans le ciel haut
-    for (x, y, c) in [
-        (12, 8, HAIR), (47, 15, HAIR), (89, 4, HAIR), (134, 12, HAIR),
-        (170, 6, HAIR), (211, 18, HAIR), (240, 9, HAIR),
-        (30, 30, SKIN_DK), (108, 24, SKIN_DK), (190, 36, SKIN_DK),
-        (3, 22, CYAN), (75, 40, CYAN), (158, 28, CYAN_DK), (228, 44, CYAN_DK),
+    // Pétales / poussières en suspension dans la haute couche
+    for (x, y) in [
+        (45, 20), (110, 40), (180, 30), (250, 25),
+        (310, 45), (380, 22), (440, 35), (480, 50),
+        (60, 60), (200, 70), (350, 65),
     ] {
-        put(&mut img, x, y, c);
+        put(&mut img, x, y, Rgba([232, 168, 178, 220]));
+        put(&mut img, x + 1, y, Rgba([220, 140, 156, 220]));
     }
 
-    // Crêtes de montagnes lointaines (silhouette douce)
-    let peaks_y = 80;
+    // Nuages puffies clairs
+    let draw_cloud = |img: &mut RgbaImage, cx: i32, cy: i32, r: i32, color: Rgba<u8>| {
+        for blob in 0..10 {
+            let angle = (blob as f32) * 0.52;
+            let dist = ((blob as f32) * 0.7).sin().abs() * (r as f32 * 0.65);
+            let bx = cx + (angle.cos() * dist) as i32;
+            let by = cy + (angle.sin() * dist * 0.35) as i32;
+            let br = (r as f32 * (0.5 + (blob as f32 * 0.3).sin().abs() * 0.5)) as i32;
+            for dy in -br..=br {
+                for dx in -br..=br {
+                    if dx * dx + dy * dy <= br * br {
+                        put(img, bx + dx, by + dy, color);
+                    }
+                }
+            }
+        }
+    };
+    let cloud = Rgba([244, 196, 200, 255]);
+    draw_cloud(&mut img, 80, 130, 50, cloud);
+    draw_cloud(&mut img, 240, 110, 60, cloud);
+    draw_cloud(&mut img, 380, 140, 55, cloud);
+    draw_cloud(&mut img, 470, 100, 40, cloud);
+
+    // Montagnes lointaines (rose clair)
+    let peaks_y = 220;
     let peaks = [
-        (0, 0), (20, 30), (40, 15), (60, 45), (80, 20),
-        (100, 35), (120, 10), (140, 40), (160, 25),
-        (180, 50), (200, 15), (220, 35), (240, 20), (256, 30),
+        (0, 0), (40, 40), (80, 20), (120, 55), (160, 30),
+        (200, 50), (240, 15), (280, 45), (320, 30),
+        (360, 60), (400, 20), (440, 40), (472, 25), (512, 38),
     ];
-    // On dessine les triangles entre paires successives
-    let mountain_color = Rgba([26, 38, 56, 255]);
+    let mountain = Rgba([222, 132, 144, 255]);
     for w in peaks.windows(2) {
         let (x0, h0) = w[0];
         let (x1, h1) = w[1];
@@ -580,7 +601,7 @@ fn make_parallax_back() {
         for px in 0..dx {
             let t = px as f32 / dx as f32;
             let h = (h0 as f32 * (1.0 - t) + h1 as f32 * t) as i32;
-            rect(&mut img, x0 + px, peaks_y - h, 1, h + (180 - peaks_y), mountain_color);
+            rect(&mut img, x0 + px, peaks_y - h, 1, h + (320 - peaks_y), mountain);
         }
     }
 
@@ -588,15 +609,15 @@ fn make_parallax_back() {
 }
 
 fn make_parallax_mid() {
-    // 256x140 : silhouettes plus rapprochées, légèrement plus sombres.
-    let mut img = RgbaImage::from_pixel(256, 140, TR);
+    // 512x260 : montagnes intermédiaires en rose moyen.
+    let mut img = RgbaImage::from_pixel(512, 260, TR);
 
-    let peaks_y = 60;
+    let peaks_y = 140;
     let peaks = [
-        (0, 20), (35, 60), (70, 30), (105, 75),
-        (140, 40), (175, 65), (210, 35), (245, 70), (256, 40),
+        (0, 30), (60, 70), (130, 35), (200, 85), (270, 45),
+        (340, 75), (410, 30), (470, 65), (512, 40),
     ];
-    let color = Rgba([16, 26, 44, 255]);
+    let color = Rgba([180, 92, 116, 255]);
     for w in peaks.windows(2) {
         let (x0, h0) = w[0];
         let (x1, h1) = w[1];
@@ -604,7 +625,7 @@ fn make_parallax_mid() {
         for px in 0..dx {
             let t = px as f32 / dx as f32;
             let h = (h0 as f32 * (1.0 - t) + h1 as f32 * t) as i32;
-            rect(&mut img, x0 + px, peaks_y - h, 1, h + (140 - peaks_y), color);
+            rect(&mut img, x0 + px, peaks_y - h, 1, h + (260 - peaks_y), color);
         }
     }
 
@@ -829,37 +850,34 @@ fn make_menu_background() {
 }
 
 fn make_parallax_front() {
-    // 256x100 : forêt en silhouette avec arbres "puffy" type Camille.
-    let mut img = RgbaImage::from_pixel(256, 100, TR);
+    // 512x180 : montagnes proches en wine sombre + pylônes silhouettes
+    // type camille-unknown-home.
+    let mut img = RgbaImage::from_pixel(512, 180, TR);
 
-    let ground_y = 70;
-    let color = Rgba([8, 14, 24, 255]);
+    let ground_y = 110;
+    let color = Rgba([108, 50, 78, 255]);
 
     // Sol ondulé
     let ground_dy = [0i32, 2, 4, 3, 1, 2, 5, 3, 1, 0, 2, 4, 3, 1, 2, 5,
                      3, 1, 0, 2, 4, 3, 1, 2, 5, 3, 1, 0, 2, 4, 3, 1];
-    for x in 0..256 {
+    for x in 0..512 {
         let dy = ground_dy[(x as usize) % ground_dy.len()];
-        rect(&mut img, x, ground_y + dy, 1, 100 - ground_y - dy, color);
+        rect(&mut img, x, ground_y + dy, 1, 180 - ground_y - dy, color);
     }
 
-    // Arbres puffy à intervalles
-    let tree_positions = [16, 56, 92, 128, 168, 208, 240];
-    for &tx in &tree_positions {
-        // Tronc fin
-        rect(&mut img, tx - 1, ground_y - 8, 3, 12, Rgba([12, 20, 32, 255]));
-        // Feuillage en cercle pixelisé
-        let leaf_color = Rgba([18, 30, 56, 255]);
-        let leaf_y = ground_y - 16;
-        // Boule du haut
-        rect(&mut img, tx - 4, leaf_y, 9, 9, leaf_color);
-        rect(&mut img, tx - 5, leaf_y + 2, 1, 5, leaf_color);
-        rect(&mut img, tx + 5, leaf_y + 2, 1, 5, leaf_color);
-        // Boule du bas (plus large)
-        let leaf2_y = ground_y - 12;
-        rect(&mut img, tx - 5, leaf2_y, 11, 6, leaf_color);
-        rect(&mut img, tx - 6, leaf2_y + 1, 1, 4, leaf_color);
-        rect(&mut img, tx + 6, leaf2_y + 1, 1, 4, leaf_color);
+    // Pylônes / poteaux silhouettés (au lieu des arbres)
+    let posts = [60, 180, 320, 430];
+    for &px in &posts {
+        rect(&mut img, px, ground_y - 22, 2, 22, color);
+        rect(&mut img, px - 5, ground_y - 18, 12, 2, color);
+        rect(&mut img, px - 4, ground_y - 11, 10, 2, color);
+    }
+
+    // Brins d'herbe par-dessus la silhouette
+    for x in (0..512).step_by(3) {
+        let h = ((x as f32 * 0.12).sin().abs() * 4.0 + 1.0) as i32;
+        let dy = ground_dy[(x as usize) % ground_dy.len()];
+        rect(&mut img, x, ground_y + dy - h, 1, h, Rgba([148, 72, 100, 255]));
     }
 
     save(&img, "assets/sprites/parallax_front.png");

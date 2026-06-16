@@ -16,9 +16,16 @@ struct Sfx {
     win: Handle<AudioSource>,
 }
 
-/// Évènement émis par le contrôleur du joueur quand il décolle du sol.
+/// Évènement émis par le contrôleur du joueur quand il décolle (sol ou
+/// double saut). Le module effects écoute aussi `PlayerAirJumped` pour
+/// distinguer les deux pour les particules.
 #[derive(Event, Debug)]
 pub struct PlayerJumped;
+
+/// Émis uniquement quand le joueur déclenche son saut en l'air (double
+/// saut). Sert au feedback visuel (burst circulaire).
+#[derive(Event, Debug)]
+pub struct PlayerAirJumped;
 
 /// Évènement émis quand le joueur atterrit, avec le facteur d'impact
 /// (0..1) pour moduler le volume.
@@ -44,6 +51,7 @@ impl Plugin for AudioPlugin {
         };
         app.insert_resource(sfx)
             .add_event::<PlayerJumped>()
+            .add_event::<PlayerAirJumped>()
             .add_event::<PlayerLanded>()
             .add_event::<CheckpointReached>()
             .add_systems(
