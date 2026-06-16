@@ -1,6 +1,7 @@
 mod camera;
 mod effects;
 mod level;
+mod parallax;
 mod physics;
 mod player;
 mod states;
@@ -34,6 +35,7 @@ fn main() {
             player::PlayerPlugin,
             effects::EffectsPlugin,
             camera::CameraPlugin,
+            parallax::ParallaxPlugin,
             ui::UiPlugin,
         ))
         .run();

@@ -33,7 +33,17 @@ const COYOTE_TIME: f32 = 0.10;
 const JUMP_BUFFER: f32 = 0.12;
 
 #[derive(Component)]
-pub struct Player;
+pub struct Player {
+    /// Dernière direction non nulle (1.0 droite, -1.0 gauche). Sert au
+    /// flip horizontal du sprite et au lookahead caméra.
+    pub facing: f32,
+}
+
+impl Default for Player {
+    fn default() -> Self {
+        Self { facing: 1.0 }
+    }
+}
 
 /// État du contrôleur. Regroupé pour éviter d'éparpiller la logique
 /// temporelle (timers) dans plusieurs composants.
@@ -71,7 +81,7 @@ impl Plugin for PlayerPlugin {
 
 fn spawn_player(mut commands: Commands) {
     commands.spawn((
-        Player,
+        Player::default(),
         PlayerController::default(),
         Velocity::default(),
         Collider::new(PLAYER_SIZE),
@@ -131,7 +141,7 @@ fn tick_player_timers(time: Res<Time>, mut q: Query<(&mut PlayerController, &Gro
 fn handle_horizontal_input(
     time: Res<Time>,
     keys: Res<ButtonInput<KeyCode>>,
-    mut q: Query<(&mut Velocity, &Grounded), With<Player>>,
+    mut q: Query<(&mut Velocity, &Grounded, &mut Player, &mut Sprite)>,
 ) {
     let dt = time.delta_seconds();
     let mut dir = 0.0;
@@ -142,16 +152,16 @@ fn handle_horizontal_input(
         dir += 1.0;
     }
 
-    for (mut velocity, grounded) in &mut q {
+    for (mut velocity, grounded, mut player, mut sprite) in &mut q {
         let target = dir * MOVE_SPEED;
         let accel = if grounded.0 { ACCEL } else { AIR_ACCEL };
 
         if dir != 0.0 {
-            // Approche linéaire de la vitesse cible
             let delta = (target - velocity.0.x).clamp(-accel * dt, accel * dt);
             velocity.0.x += delta;
+            player.facing = dir;
+            sprite.flip_x = dir < 0.0;
         } else if grounded.0 {
-            // Friction uniquement au sol pour préserver l'élan en l'air
             let friction = GROUND_FRICTION * dt;
             if velocity.0.x.abs() <= friction {
                 velocity.0.x = 0.0;
