@@ -8,6 +8,7 @@
 //! Enter), action déclenchée via `MenuAction` (composant attaché à
 //! chaque bouton).
 
+use crate::heroes::{Hero, SelectedHero};
 use crate::level::{Checkpoint, RespawnPoint};
 use crate::physics::{Grounded, Velocity};
 use crate::player::{Player, PlayerController};
@@ -64,9 +65,12 @@ pub enum MenuAction {
     Continue,
     Resume,
     Restart,
+    GotoHeroSelect,
     GotoSettings,
     GotoCredits,
     GotoMainMenu,
+    SelectHero(Hero),
+    ConfirmHero,
     ToggleFullscreen,
     AdjustMaster(f32),
     AdjustMusic(f32),
@@ -132,6 +136,8 @@ impl Plugin for UiPlugin {
             // Écrans
             .add_systems(OnEnter(GameState::MainMenu), spawn_main_menu)
             .add_systems(OnExit(GameState::MainMenu), despawn_screen)
+            .add_systems(OnEnter(GameState::HeroSelect), spawn_hero_select)
+            .add_systems(OnExit(GameState::HeroSelect), despawn_screen)
             .add_systems(OnEnter(GameState::Settings), spawn_settings)
             .add_systems(OnExit(GameState::Settings), exit_settings)
             .add_systems(OnEnter(GameState::Credits), spawn_credits)
@@ -483,7 +489,7 @@ fn spawn_main_menu(
             if save.runs_completed > 0 {
                 spawn_button(p, &mut counter, font, "Continuer", MenuAction::Continue);
             }
-            spawn_button(p, &mut counter, font, "Nouvelle partie", MenuAction::StartNewGame);
+            spawn_button(p, &mut counter, font, "Nouvelle partie", MenuAction::GotoHeroSelect);
             spawn_button(p, &mut counter, font, "Paramètres", MenuAction::GotoSettings);
             spawn_button(p, &mut counter, font, "Crédits", MenuAction::GotoCredits);
             spawn_button(p, &mut counter, font, "Quitter", MenuAction::Quit);
@@ -498,6 +504,139 @@ fn spawn_main_menu(
         );
         }); // ferme le with_children de l'overlay
     }); // ferme le with_children du root
+}
+
+// =================================================== Hero select ===
+
+fn spawn_hero_select(
+    mut commands: Commands,
+    mut counter: ResMut<ButtonCount>,
+    mut selection: ResMut<MenuSelection>,
+    font: Res<UiFont>,
+    asset_server: Res<AssetServer>,
+    selected: Res<SelectedHero>,
+) {
+    begin_screen(&mut counter, &mut selection);
+    let font = font.into_inner();
+    // Préselectionne le slot du héros courant
+    selection.0 = Hero::all().iter().position(|h| *h == selected.0).unwrap_or(0);
+
+    let root = spawn_overlay(&mut commands);
+    commands.entity(root).with_children(|p| {
+        spawn_title(p, font, "Choisis ton heros");
+        spawn_subtitle(p, font, "Fleches gauche/droite, Entree pour valider");
+
+        // Rangée de 3 cartes
+        p.spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Row,
+                column_gap: Val::Px(24.0),
+                margin: UiRect::vertical(Val::Px(28.0)),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|p| {
+            for &hero in Hero::all() {
+                spawn_hero_card(p, &mut counter, font, &asset_server, hero);
+            }
+        });
+
+        spawn_text(
+            p,
+            font,
+            "Selectionne une carte pour lancer la partie",
+            16.0,
+            HINT_COLOR,
+        );
+        p.spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                margin: UiRect::top(Val::Px(12.0)),
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|p| {
+            spawn_button(p, &mut counter, font, "Retour au menu", MenuAction::GotoMainMenu);
+        });
+    });
+}
+
+fn spawn_hero_card(
+    parent: &mut ChildBuilder,
+    counter: &mut ResMut<ButtonCount>,
+    font: &UiFont,
+    asset_server: &AssetServer,
+    hero: Hero,
+) {
+    let index = counter.0;
+    counter.0 += 1;
+    let label = hero.label();
+    let tagline = hero.tagline();
+    let description = hero.description();
+    let sprite = asset_server.load(hero.preview_path());
+    parent
+        .spawn((
+            MenuAction::SelectHero(hero),
+            ButtonIndex(index),
+            ButtonBundle {
+                style: Style {
+                    width: Val::Px(240.0),
+                    height: Val::Px(320.0),
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::FlexStart,
+                    padding: UiRect::all(Val::Px(16.0)),
+                    row_gap: Val::Px(10.0),
+                    border: UiRect::all(Val::Px(2.0)),
+                    ..default()
+                },
+                background_color: BTN_NORMAL.into(),
+                border_color: BTN_BORDER.into(),
+                ..default()
+            },
+        ))
+        .with_children(|p| {
+            // Sprite preview : on prend le frame 0 du sprite sheet via
+            // Sprite::rect. Sprite sheet 168x36, frame 0 = (0,0,24,36).
+            p.spawn(ImageBundle {
+                style: Style {
+                    width: Val::Px(72.0),
+                    height: Val::Px(108.0),
+                    ..default()
+                },
+                image: UiImage::new(sprite),
+                ..default()
+            });
+            p.spawn(TextBundle::from_section(
+                label,
+                TextStyle {
+                    font: font.bold.clone(),
+                    font_size: 26.0,
+                    color: TITLE_COLOR,
+                },
+            ));
+            p.spawn(TextBundle::from_section(
+                tagline,
+                TextStyle {
+                    font: font.regular.clone(),
+                    font_size: 16.0,
+                    color: ACCENT_CYAN,
+                },
+            ));
+            p.spawn(TextBundle::from_section(
+                description,
+                TextStyle {
+                    font: font.regular.clone(),
+                    font_size: 14.0,
+                    color: SUBTITLE_COLOR,
+                },
+            ));
+        });
 }
 
 // ======================================================= Settings ===
@@ -816,6 +955,9 @@ fn button_interaction(
     mut settings: ResMut<Settings>,
     mut window_q: Query<&mut Window, With<PrimaryWindow>>,
     mut exit_event: EventWriter<AppExit>,
+    mut selected_hero: ResMut<SelectedHero>,
+    mut save_data: ResMut<SaveData>,
+    mut current_level: ResMut<crate::world::CurrentLevel>,
 ) {
     for (interaction, action, index, mut bg, mut border) in &mut q {
         match *interaction {
@@ -830,6 +972,9 @@ fn button_interaction(
                     &mut settings,
                     &mut window_q,
                     &mut exit_event,
+                    &mut selected_hero,
+                    &mut save_data,
+                    &mut current_level,
                 );
             }
             Interaction::Hovered => {
@@ -866,6 +1011,9 @@ fn keyboard_navigation(
     mut settings: ResMut<Settings>,
     mut window_q: Query<&mut Window, With<PrimaryWindow>>,
     mut exit_event: EventWriter<AppExit>,
+    mut selected_hero: ResMut<SelectedHero>,
+    mut save_data: ResMut<SaveData>,
+    mut current_level: ResMut<crate::world::CurrentLevel>,
 ) {
     if counter.0 == 0 {
         return;
@@ -919,6 +1067,9 @@ fn keyboard_navigation(
                     &mut settings,
                     &mut window_q,
                     &mut exit_event,
+                    &mut selected_hero,
+                    &mut save_data,
+                    &mut current_level,
                 );
                 return;
             }
@@ -926,6 +1077,7 @@ fn keyboard_navigation(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn trigger_action(
     action: MenuAction,
     next: &mut ResMut<NextState<GameState>>,
@@ -933,9 +1085,16 @@ fn trigger_action(
     settings: &mut ResMut<Settings>,
     window_q: &mut Query<&mut Window, With<PrimaryWindow>>,
     exit_event: &mut EventWriter<AppExit>,
+    selected_hero: &mut ResMut<SelectedHero>,
+    save_data: &mut ResMut<SaveData>,
+    current_level: &mut ResMut<crate::world::CurrentLevel>,
 ) {
     match action {
-        MenuAction::StartNewGame | MenuAction::Continue => {
+        MenuAction::StartNewGame | MenuAction::Continue | MenuAction::ConfirmHero => {
+            // Démarrer une partie remet le niveau à 1.
+            current_level.0 = crate::world::LevelId::default();
+            save_data.selected_hero = selected_hero.0;
+            crate::save::save_data(save_data);
             next.set(GameState::Playing);
         }
         MenuAction::Resume => {
@@ -944,9 +1103,18 @@ fn trigger_action(
             }
         }
         MenuAction::Restart => next.set(GameState::Playing),
+        MenuAction::GotoHeroSelect => next.set(GameState::HeroSelect),
         MenuAction::GotoSettings => next.set(GameState::Settings),
         MenuAction::GotoCredits => next.set(GameState::Credits),
         MenuAction::GotoMainMenu => next.set(GameState::MainMenu),
+        MenuAction::SelectHero(hero) => {
+            selected_hero.0 = hero;
+            // Activer une carte démarre directement la partie au niveau 1.
+            current_level.0 = crate::world::LevelId::default();
+            save_data.selected_hero = hero;
+            crate::save::save_data(save_data);
+            next.set(GameState::Playing);
+        }
         MenuAction::ToggleFullscreen => {
             settings.fullscreen = !settings.fullscreen;
             if let Ok(mut window) = window_q.get_single_mut() {

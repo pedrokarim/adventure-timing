@@ -8,6 +8,7 @@
 //! L'écriture est explicite (pas d'autosave à chaque frame) : on
 //! sauvegarde à la fin d'une run et à la sortie d'un Settings.
 
+use crate::heroes::Hero;
 use bevy::prelude::*;
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
@@ -24,6 +25,8 @@ pub struct SaveData {
     pub fewest_deaths: Option<u32>,
     pub total_deaths: u32,
     pub runs_completed: u32,
+    #[serde(default)]
+    pub selected_hero: Hero,
 }
 
 impl SaveData {
@@ -68,7 +71,11 @@ impl Plugin for SavePlugin {
     fn build(&self, app: &mut App) {
         let save_data = load::<SaveData>("save.json").unwrap_or_default();
         let settings = load::<Settings>("settings.json").unwrap_or_default();
-        app.insert_resource(save_data).insert_resource(settings);
+        // Restaure le héros sélectionné depuis la save.
+        let selected_hero = crate::heroes::SelectedHero(save_data.selected_hero);
+        app.insert_resource(save_data)
+            .insert_resource(settings)
+            .insert_resource(selected_hero);
     }
 }
 

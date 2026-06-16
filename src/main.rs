@@ -2,6 +2,7 @@ mod audio;
 mod camera;
 mod effects;
 mod enemies;
+mod heroes;
 mod items;
 mod level;
 mod parallax;
@@ -34,9 +35,11 @@ fn main() {
             ..default()
         }))
         .insert_resource(ClearColor(SKY))
+        // Splittés en deux groupes car le tuple add_plugins est limité à 15.
         .add_plugins((
             save::SavePlugin,
             states::StatesPlugin,
+            heroes::HeroesPlugin,
             audio::AudioPlugin,
             physics::PhysicsPlugin,
             world::WorldPlugin,
@@ -46,6 +49,8 @@ fn main() {
             weapons::WeaponsPlugin,
             enemies::EnemiesPlugin,
             player::PlayerPlugin,
+        ))
+        .add_plugins((
             effects::EffectsPlugin,
             camera::CameraPlugin,
             parallax::ParallaxPlugin,

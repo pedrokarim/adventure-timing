@@ -109,6 +109,130 @@ const POSE_IDLE: PlayerPose = PlayerPose {
     arms_out: false,
 };
 
+struct PlayerPalette {
+    cloak: Rgba<u8>,
+    cloak_dk: Rgba<u8>,
+    cloak_edge: Rgba<u8>,
+    skin: Rgba<u8>,
+    skin_dk: Rgba<u8>,
+    hair: Rgba<u8>,
+    accent: Option<Rgba<u8>>,
+}
+
+const PALETTE_WANDERER: PlayerPalette = PlayerPalette {
+    cloak: CLOAK,
+    cloak_dk: CLOAK_DK,
+    cloak_edge: CLOAK_EDGE,
+    skin: SKIN,
+    skin_dk: SKIN_DK,
+    hair: HAIR,
+    accent: Some(AMBER),
+};
+
+const PALETTE_TIGHTROPE: PlayerPalette = PlayerPalette {
+    cloak: Rgba([46, 64, 132, 255]),
+    cloak_dk: Rgba([22, 36, 80, 255]),
+    cloak_edge: Rgba([86, 108, 188, 255]),
+    skin: Rgba([238, 196, 158, 255]),
+    skin_dk: Rgba([198, 154, 118, 255]),
+    hair: Rgba([220, 92, 60, 255]),
+    accent: Some(Rgba([252, 220, 140, 255])),
+};
+
+const PALETTE_GUARDIAN: PlayerPalette = PlayerPalette {
+    cloak: Rgba([124, 116, 96, 255]),
+    cloak_dk: Rgba([72, 64, 50, 255]),
+    cloak_edge: Rgba([180, 168, 138, 255]),
+    skin: Rgba([220, 188, 156, 255]),
+    skin_dk: Rgba([158, 124, 100, 255]),
+    hair: Rgba([196, 196, 188, 255]),
+    accent: Some(CYAN_BRIGHT),
+};
+
+fn draw_player_frame_palette(
+    img: &mut RgbaImage,
+    frame_x: i32,
+    pose: PlayerPose,
+    p: &PlayerPalette,
+) {
+    let cx = frame_x + PLAYER_FRAME_W / 2;
+    let head_y = 3 + pose.body_dy;
+
+    // Capuche pointue
+    rect(img, cx - 1, head_y, 2, 1, p.cloak);
+    rect(img, cx - 2, head_y + 1, 4, 1, p.cloak);
+    rect(img, cx - 3, head_y + 2, 6, 2, p.cloak);
+    rect(img, cx - 5, head_y + 4, 10, 2, p.cloak);
+    rect(img, cx - 6, head_y + 6, 12, 4, p.cloak);
+
+    // Mèche
+    if !pose.hood_up {
+        rect(img, cx - 5, head_y + 9, 3, 2, p.hair);
+        put(img, cx - 6, head_y + 9, p.hair);
+        put(img, cx - 5, head_y + 11, p.hair);
+    }
+
+    // Visage
+    let face_y = head_y + 5;
+    rect(img, cx - 2, face_y, 5, 3, p.skin);
+    hline(img, cx - 2, face_y, 5, p.skin_dk);
+    put(img, cx - 1, face_y + 1, EYE);
+    put(img, cx + 1, face_y + 1, EYE);
+
+    // Épaules
+    let shoulder_y = head_y + 10;
+    rect(img, cx - 7, shoulder_y, 14, 3, p.cloak);
+    vline(img, cx - 7, shoulder_y, 3, p.cloak_edge);
+    hline(img, cx - 5, shoulder_y + 2, 10, p.cloak_dk);
+
+    // Broche / rune
+    if let Some(accent) = p.accent {
+        put(img, cx, shoulder_y + 1, accent);
+    }
+
+    // Corps de la cape
+    let body_top = shoulder_y + 3;
+    let body_h = 14;
+    for row in 0..body_h {
+        let t = row as f32 / body_h as f32;
+        let base = 12;
+        let flare = (t * t * 4.0) as i32 + pose.cloak_flare;
+        let width = (base + flare).min(20);
+        rect(img, cx - width / 2, body_top + row, width, 1, p.cloak);
+    }
+
+    // Edge highlight gauche
+    for row in 0..body_h {
+        let t = row as f32 / body_h as f32;
+        let base = 12;
+        let flare = (t * t * 4.0) as i32 + pose.cloak_flare;
+        let width = (base + flare).min(20);
+        let left_x = cx - width / 2;
+        put(img, left_x, body_top + row, p.cloak_edge);
+    }
+
+    // Hem
+    let hem_y = body_top + body_h;
+    let hem_width = (12 + 4 + pose.cloak_flare).min(20);
+    rect(img, cx - hem_width / 2, hem_y, hem_width, 1, p.cloak_dk);
+    put(img, cx - hem_width / 2 + 2, hem_y + 1, p.cloak_dk);
+    put(img, cx - hem_width / 2 + (hem_width / 2), hem_y + 1, p.cloak_dk);
+    put(img, cx - hem_width / 2 + hem_width - 3, hem_y + 1, p.cloak_dk);
+
+    // Bras écartés
+    if pose.arms_out {
+        rect(img, cx - 10, body_top + 1, 2, 6, p.cloak);
+        rect(img, cx + 8, body_top + 1, 2, 6, p.cloak);
+        put(img, cx - 10, body_top + 7, p.skin_dk);
+        put(img, cx + 9, body_top + 7, p.skin_dk);
+    }
+
+    // Pieds
+    let feet_y = hem_y + 2;
+    rect(img, cx - 3 + pose.left_foot_dx, feet_y, 2, 2, EYE);
+    rect(img, cx + 1 + pose.right_foot_dx, feet_y, 2, 2, EYE);
+}
+
 fn draw_player_frame(img: &mut RgbaImage, frame_x: i32, pose: PlayerPose) {
     let cx = frame_x + PLAYER_FRAME_W / 2;
     let head_y = 3 + pose.body_dy;
@@ -198,7 +322,94 @@ fn draw_player_frame(img: &mut RgbaImage, frame_x: i32, pose: PlayerPose) {
     rect(img, cx + 1 + pose.right_foot_dx, feet_y, 2, 2, EYE);
 }
 
+fn make_player_with_palette(path: &str, palette: &PlayerPalette) {
+    let mut img = RgbaImage::from_pixel(
+        (PLAYER_FRAME_W * 7) as u32,
+        PLAYER_FRAME_H as u32,
+        TR,
+    );
+
+    let poses = [
+        POSE_IDLE,
+        PlayerPose {
+            body_dy: 0,
+            cloak_flare: 1,
+            left_foot_dx: -1,
+            right_foot_dx: 1,
+            hood_up: false,
+            arms_out: false,
+        },
+        PlayerPose {
+            body_dy: -1,
+            cloak_flare: 0,
+            left_foot_dx: 0,
+            right_foot_dx: 0,
+            hood_up: false,
+            arms_out: false,
+        },
+        PlayerPose {
+            body_dy: 0,
+            cloak_flare: 1,
+            left_foot_dx: 1,
+            right_foot_dx: -1,
+            hood_up: false,
+            arms_out: false,
+        },
+        PlayerPose {
+            body_dy: -1,
+            cloak_flare: 0,
+            left_foot_dx: 0,
+            right_foot_dx: 0,
+            hood_up: false,
+            arms_out: false,
+        },
+        PlayerPose {
+            body_dy: -2,
+            cloak_flare: -1,
+            left_foot_dx: 0,
+            right_foot_dx: 0,
+            hood_up: true,
+            arms_out: false,
+        },
+        PlayerPose {
+            body_dy: 0,
+            cloak_flare: 3,
+            left_foot_dx: -2,
+            right_foot_dx: 2,
+            hood_up: false,
+            arms_out: true,
+        },
+    ];
+
+    for (i, pose) in poses.iter().enumerate() {
+        draw_player_frame_palette(&mut img, (i as i32) * PLAYER_FRAME_W, *pose, palette);
+    }
+
+    save(&img, path);
+}
+
 fn make_player() {
+    make_player_with_palette("assets/sprites/player.png", &PALETTE_WANDERER);
+    make_player_with_palette("assets/sprites/player_tightrope.png", &PALETTE_TIGHTROPE);
+    make_player_with_palette("assets/sprites/player_guardian.png", &PALETTE_GUARDIAN);
+    // Previews 1-frame pour l'écran de sélection
+    make_preview("assets/sprites/preview_wanderer.png", &PALETTE_WANDERER);
+    make_preview("assets/sprites/preview_tightrope.png", &PALETTE_TIGHTROPE);
+    make_preview("assets/sprites/preview_guardian.png", &PALETTE_GUARDIAN);
+}
+
+fn make_preview(path: &str, palette: &PlayerPalette) {
+    let mut img = RgbaImage::from_pixel(
+        PLAYER_FRAME_W as u32,
+        PLAYER_FRAME_H as u32,
+        TR,
+    );
+    draw_player_frame_palette(&mut img, 0, POSE_IDLE, palette);
+    save(&img, path);
+}
+
+#[allow(dead_code)]
+fn make_player_old() {
     let mut img = RgbaImage::from_pixel(
         (PLAYER_FRAME_W * 7) as u32,
         PLAYER_FRAME_H as u32,

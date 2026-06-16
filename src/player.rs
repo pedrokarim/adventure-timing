@@ -3,6 +3,7 @@
 //! d'animation par texture atlas (7 frames, voir examples/gen_assets.rs).
 
 use crate::audio::{PlayerAirJumped, PlayerJumped};
+use crate::heroes::SelectedHero;
 use crate::items::ActiveEffects;
 use crate::effects::{ScreenShake, SquashStretch};
 use crate::level::RespawnPoint;
@@ -23,9 +24,6 @@ const SPRITE_ANCHOR_Y: f32 = -3.0 / 36.0;
 const SPRITE_FRAME_SIZE: UVec2 = UVec2::new(24, 36);
 const SPRITE_FRAME_COUNT: u32 = 7;
 
-/// Vitesse horizontale max (px/s). Plus rapide qu'avant pour compenser
-/// les distances visibles avec la nouvelle caméra.
-const MOVE_SPEED: f32 = 320.0;
 /// Accélération au sol. Volontairement plus basse pour donner du poids.
 const ACCEL: f32 = 1900.0;
 /// Décélération naturelle. Plus basse → on garde plus d'inertie en
@@ -38,17 +36,9 @@ const AIR_ACCEL: f32 = 1700.0;
 /// au mouvement courant — pour répondre vite aux demi-tours.
 const TURNAROUND_BOOST: f32 = 1.7;
 
-const JUMP_VELOCITY: f32 = 760.0;
-/// Vitesse du saut en l'air. Un peu moins fort pour valoriser le saut au
-/// sol tout en gardant un boost utile sur les sections aériennes.
-const AIR_JUMP_VELOCITY: f32 = 680.0;
 const JUMP_CUT_FACTOR: f32 = 0.45;
-
 const COYOTE_TIME: f32 = 0.10;
 const JUMP_BUFFER: f32 = 0.12;
-
-/// Nombre de sauts utilisables en l'air après avoir quitté le sol.
-const MAX_AIR_JUMPS: u8 = 1;
 
 const RUN_FRAME_TIME: f32 = 0.09;
 
@@ -79,7 +69,9 @@ impl Default for PlayerController {
             coyote_timer: 0.0,
             jump_buffer_timer: 0.0,
             is_jumping: false,
-            air_jumps_remaining: MAX_AIR_JUMPS,
+            // air_jumps_remaining sera reset par tick_player_timers selon
+            // le héros sélectionné dès la prochaine frame.
+            air_jumps_remaining: 1,
         }
     }
 }
@@ -141,17 +133,17 @@ impl Plugin for PlayerPlugin {
                     .before(PhysicsSet)
                     .run_if(in_state(GameState::Playing)),
             )
-            // L'animation tourne aussi en pause/menu (lisibilité visuelle).
-            .add_systems(Update, (handle_death, animate_player));
+            .add_systems(Update, (handle_death, animate_player, update_hero_sprite));
     }
 }
 
 fn spawn_player(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    selected_hero: Res<SelectedHero>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    let texture = asset_server.load("sprites/player.png");
+    let texture = asset_server.load(selected_hero.0.sprite_path());
     let layout = TextureAtlasLayout::from_grid(
         SPRITE_FRAME_SIZE,
         SPRITE_FRAME_COUNT,
@@ -189,6 +181,8 @@ fn handle_death(
     mut deaths: EventReader<PlayerDied>,
     mut player: Query<(&mut Transform, &mut Velocity, &mut PlayerController), With<Player>>,
     respawn: Res<RespawnPoint>,
+    selected_hero: Res<SelectedHero>,
+    mut effects: ResMut<ActiveEffects>,
     mut stats: ResMut<RunStats>,
     mut shake: ResMut<ScreenShake>,
 ) {
@@ -206,15 +200,41 @@ fn handle_death(
     *ctrl = PlayerController::default();
     stats.deaths += 1;
     shake.add(0.65);
+
+    // Le Gardien a une fenêtre d'invincibilité après chaque mort.
+    let respawn_invuln = selected_hero.0.respawn_invincibility();
+    if respawn_invuln > 0.0 {
+        effects.invincible = effects.invincible.max(respawn_invuln);
+    }
 }
 
-fn tick_player_timers(time: Res<Time>, mut q: Query<(&mut PlayerController, &Grounded)>) {
+/// Switche la texture du joueur quand `SelectedHero` change (depuis
+/// l'écran de sélection).
+fn update_hero_sprite(
+    selected_hero: Res<SelectedHero>,
+    asset_server: Res<AssetServer>,
+    mut q: Query<&mut Handle<Image>, With<Player>>,
+) {
+    if !selected_hero.is_changed() {
+        return;
+    }
+    let new_handle = asset_server.load(selected_hero.0.sprite_path());
+    for mut h in &mut q {
+        *h = new_handle.clone();
+    }
+}
+
+fn tick_player_timers(
+    time: Res<Time>,
+    selected_hero: Res<SelectedHero>,
+    mut q: Query<(&mut PlayerController, &Grounded)>,
+) {
     let dt = time.delta_seconds();
+    let max_air_jumps = selected_hero.0.max_air_jumps();
     for (mut ctrl, grounded) in &mut q {
         if grounded.0 {
             ctrl.coyote_timer = 0.0;
-            // Le contact sol recharge le double saut.
-            ctrl.air_jumps_remaining = MAX_AIR_JUMPS;
+            ctrl.air_jumps_remaining = max_air_jumps;
         } else {
             ctrl.coyote_timer += dt;
         }
@@ -225,9 +245,11 @@ fn tick_player_timers(time: Res<Time>, mut q: Query<(&mut PlayerController, &Gro
 fn handle_horizontal_input(
     time: Res<Time>,
     keys: Res<ButtonInput<KeyCode>>,
+    selected_hero: Res<SelectedHero>,
     mut q: Query<(&mut Velocity, &Grounded, &mut Player, &mut Sprite)>,
 ) {
     let dt = time.delta_seconds();
+    let move_speed = selected_hero.0.move_speed();
     let mut dir = 0.0;
     if keys.pressed(KeyCode::ArrowLeft) || keys.pressed(KeyCode::KeyA) {
         dir -= 1.0;
@@ -237,7 +259,7 @@ fn handle_horizontal_input(
     }
 
     for (mut velocity, grounded, mut player, mut sprite) in &mut q {
-        let target = dir * MOVE_SPEED;
+        let target = dir * move_speed;
         let base_accel = if grounded.0 { ACCEL } else { AIR_ACCEL };
 
         if dir != 0.0 {
@@ -262,11 +284,15 @@ fn handle_horizontal_input(
 
 fn handle_jump_input(
     keys: Res<ButtonInput<KeyCode>>,
+    selected_hero: Res<SelectedHero>,
     mut q: Query<(&mut Velocity, &mut PlayerController, &Grounded), With<Player>>,
     effects: Res<ActiveEffects>,
     mut jumped: EventWriter<PlayerJumped>,
     mut air_jumped: EventWriter<PlayerAirJumped>,
 ) {
+    let hero = selected_hero.0;
+    let jump_velocity = hero.jump_velocity();
+    let air_jump_velocity = hero.air_jump_velocity();
     let jump_pressed = keys.just_pressed(KeyCode::Space)
         || keys.just_pressed(KeyCode::ArrowUp)
         || keys.just_pressed(KeyCode::KeyW);
@@ -289,13 +315,13 @@ fn handle_jump_input(
         let boost = if effects.jump_boost > 0.0 { 1.3 } else { 1.0 };
 
         if buffered && can_jump_ground {
-            velocity.0.y = JUMP_VELOCITY * boost;
+            velocity.0.y = jump_velocity * boost;
             ctrl.is_jumping = true;
             ctrl.jump_buffer_timer = JUMP_BUFFER;
             ctrl.coyote_timer = COYOTE_TIME;
             jumped.send(PlayerJumped);
         } else if buffered && can_jump_air {
-            velocity.0.y = AIR_JUMP_VELOCITY * boost;
+            velocity.0.y = air_jump_velocity * boost;
             ctrl.is_jumping = true;
             ctrl.air_jumps_remaining -= 1;
             ctrl.jump_buffer_timer = JUMP_BUFFER;

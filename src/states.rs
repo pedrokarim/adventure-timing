@@ -8,6 +8,7 @@ use bevy::prelude::*;
 pub enum GameState {
     #[default]
     MainMenu,
+    HeroSelect,
     Settings,
     Credits,
     Playing,
