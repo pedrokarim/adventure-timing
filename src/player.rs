@@ -10,15 +10,15 @@ use crate::world::PLAYER_SPAWN;
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 
-/// Hitbox de gameplay. Plus petite que le sprite (32x48) pour
-/// permettre des passages serrés et une lecture précise des collisions.
-const PLAYER_SIZE: Vec2 = Vec2::new(28.0, 44.0);
+/// Hitbox de gameplay. Plus petite que le sprite (24x36) car la cape
+/// déborde sur les côtés sans participer aux collisions.
+const PLAYER_SIZE: Vec2 = Vec2::new(14.0, 30.0);
 
 /// Ratio pour aligner le bas du sprite avec le bas du collider.
-/// (sprite 48 px, collider 44 px → anchor 2 px sous le centre)
-const SPRITE_ANCHOR_Y: f32 = -2.0 / 48.0;
+/// (sprite 36 px, collider 30 px → anchor 3 px sous le centre)
+const SPRITE_ANCHOR_Y: f32 = -3.0 / 36.0;
 
-const SPRITE_FRAME_SIZE: UVec2 = UVec2::new(32, 48);
+const SPRITE_FRAME_SIZE: UVec2 = UVec2::new(24, 36);
 const SPRITE_FRAME_COUNT: u32 = 7;
 
 const MOVE_SPEED: f32 = 280.0;

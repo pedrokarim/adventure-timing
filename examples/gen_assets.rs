@@ -1,9 +1,11 @@
-//! Générateur de sprites pixel art. À relancer après modification :
-//! `cargo run --example gen_assets`.
+//! Générateur de sprites pixel art — direction artistique "nuit mystique"
+//! inspirée du travail de Camille Unknown (voir assets/inspirations/).
 //!
-//! Tout est dessiné procéduralement avec le crate `image` (dev-dep), ce
-//! qui évite d'embarquer des fichiers binaires versionnés et garantit
-//! qu'on peut reproduire les assets à tout moment.
+//! Palette : dominantes teal/bleu nuit, silhouettes très sombres,
+//! accents cyan (magie, glow) et ambre (feu, lanternes). Le perso est
+//! une silhouette encapuchonnée à la Hollow Knight / Death's Door.
+//!
+//! Relancer après modif : `cargo run --example gen_assets`.
 
 use image::{Rgba, RgbaImage};
 use std::path::Path;
@@ -12,41 +14,36 @@ use std::path::Path;
 
 const TR: Rgba<u8> = Rgba([0, 0, 0, 0]);
 
-// Joueur
-const HAIR: Rgba<u8> = Rgba([60, 36, 28, 255]);
-const SKIN: Rgba<u8> = Rgba([238, 196, 158, 255]);
-const SKIN_DK: Rgba<u8> = Rgba([198, 154, 118, 255]);
-const SHIRT: Rgba<u8> = Rgba([206, 58, 66, 255]);
-const SHIRT_DK: Rgba<u8> = Rgba([148, 36, 42, 255]);
-const PANTS: Rgba<u8> = Rgba([56, 68, 124, 255]);
-const PANTS_DK: Rgba<u8> = Rgba([34, 44, 86, 255]);
-const BOOTS: Rgba<u8> = Rgba([46, 30, 22, 255]);
-const EYE: Rgba<u8> = Rgba([28, 22, 36, 255]);
+// Personnage (silhouette)
+const CLOAK: Rgba<u8> = Rgba([20, 24, 36, 255]);
+const CLOAK_DK: Rgba<u8> = Rgba([10, 12, 22, 255]);
+const CLOAK_EDGE: Rgba<u8> = Rgba([42, 50, 70, 255]);
+const SKIN: Rgba<u8> = Rgba([196, 200, 220, 255]);
+const SKIN_DK: Rgba<u8> = Rgba([140, 146, 174, 255]);
+const HAIR: Rgba<u8> = Rgba([232, 236, 250, 255]);
+const EYE: Rgba<u8> = Rgba([8, 8, 16, 255]);
 
-// Tiles
-const GRASS: Rgba<u8> = Rgba([78, 168, 88, 255]);
-const GRASS_DK: Rgba<u8> = Rgba([48, 124, 60, 255]);
-const GRASS_LT: Rgba<u8> = Rgba([110, 196, 116, 255]);
-const DIRT: Rgba<u8> = Rgba([124, 86, 56, 255]);
-const DIRT_DK: Rgba<u8> = Rgba([88, 60, 38, 255]);
-const STONE: Rgba<u8> = Rgba([130, 130, 145, 255]);
-const STONE_DK: Rgba<u8> = Rgba([88, 88, 105, 255]);
-const WOOD: Rgba<u8> = Rgba([150, 102, 60, 255]);
-const WOOD_DK: Rgba<u8> = Rgba([102, 68, 38, 255]);
-const WOOD_LT: Rgba<u8> = Rgba([186, 132, 78, 255]);
+// Terre / sol — légèrement plus froid que la pierre pour
+// distinguer les couches sans casser la palette
+const DIRT: Rgba<u8> = Rgba([32, 36, 44, 255]);
+const DIRT_DK: Rgba<u8> = Rgba([18, 22, 30, 255]);
+const DIRT_LT: Rgba<u8> = Rgba([54, 58, 70, 255]);
+const MOSS: Rgba<u8> = Rgba([56, 92, 92, 255]);
+const MOSS_DK: Rgba<u8> = Rgba([34, 62, 64, 255]);
+const MOSS_LT: Rgba<u8> = Rgba([96, 140, 130, 255]);
 
-// Hazards
-const SPIKE_LT: Rgba<u8> = Rgba([225, 225, 240, 255]);
-const SPIKE_DK: Rgba<u8> = Rgba([140, 140, 160, 255]);
-const SPIKE_BASE: Rgba<u8> = Rgba([72, 72, 88, 255]);
+// Pierre / mur
+const STONE: Rgba<u8> = Rgba([48, 58, 72, 255]);
+const STONE_DK: Rgba<u8> = Rgba([24, 30, 42, 255]);
+const STONE_LT: Rgba<u8> = Rgba([76, 88, 104, 255]);
 
-// Drapeaux
-const POLE: Rgba<u8> = Rgba([70, 50, 36, 255]);
-const POLE_DK: Rgba<u8> = Rgba([44, 30, 22, 255]);
-const CHECK_FLAG: Rgba<u8> = Rgba([238, 200, 64, 255]);
-const CHECK_FLAG_DK: Rgba<u8> = Rgba([170, 132, 38, 255]);
-const GOAL_FLAG: Rgba<u8> = Rgba([238, 70, 178, 255]);
-const GOAL_FLAG_DK: Rgba<u8> = Rgba([164, 40, 122, 255]);
+// Accents lumineux
+const CYAN: Rgba<u8> = Rgba([108, 196, 232, 255]);
+const CYAN_BRIGHT: Rgba<u8> = Rgba([186, 232, 250, 255]);
+const CYAN_DK: Rgba<u8> = Rgba([56, 120, 168, 255]);
+const AMBER: Rgba<u8> = Rgba([232, 168, 76, 255]);
+const AMBER_BRIGHT: Rgba<u8> = Rgba([248, 220, 140, 255]);
+const AMBER_DK: Rgba<u8> = Rgba([148, 92, 32, 255]);
 
 // =========================================================== Helpers ===
 
@@ -68,6 +65,10 @@ fn hline(img: &mut RgbaImage, x: i32, y: i32, w: i32, c: Rgba<u8>) {
     rect(img, x, y, w, 1, c);
 }
 
+fn vline(img: &mut RgbaImage, x: i32, y: i32, h: i32, c: Rgba<u8>) {
+    rect(img, x, y, 1, h, c);
+}
+
 fn save(img: &RgbaImage, path: &str) {
     let p = Path::new(path);
     if let Some(parent) = p.parent() {
@@ -78,331 +79,321 @@ fn save(img: &RgbaImage, path: &str) {
 }
 
 // ============================================================ Player ===
+// Sprite 24x36, 7 frames horizontaux → 168x36.
+// Silhouette encapuchonnée. Le visage est juste un patch pâle dans la
+// capuche, les cheveux blancs dépassent quand la capuche n'est pas
+// relevée (idle/run). En saut/chute, la capuche se relève.
+
+const PLAYER_FRAME_W: i32 = 24;
+const PLAYER_FRAME_H: i32 = 36;
 
 #[derive(Clone, Copy)]
-struct Pose {
+struct PlayerPose {
     body_dy: i32,
-    head_dy: i32,
-    left_arm_dx: i32,
-    left_arm_dy: i32,
-    right_arm_dx: i32,
-    right_arm_dy: i32,
-    left_leg_dx: i32,
-    left_leg_dy: i32,
-    right_leg_dx: i32,
-    right_leg_dy: i32,
-    arms_up: bool,
+    /// Décale les bords gauche/droite du bas de la cape (-1 à 2).
+    cloak_flare: i32,
+    /// Décale les deux pieds horizontalement (run cycle).
+    left_foot_dx: i32,
+    right_foot_dx: i32,
+    /// Si vrai, capuche complètement relevée — pas de cheveux visibles.
+    hood_up: bool,
+    /// Si vrai, les bras sont écartés (chute).
+    arms_out: bool,
 }
 
-const IDLE: Pose = Pose {
+const POSE_IDLE: PlayerPose = PlayerPose {
     body_dy: 0,
-    head_dy: 0,
-    left_arm_dx: 0,
-    left_arm_dy: 0,
-    right_arm_dx: 0,
-    right_arm_dy: 0,
-    left_leg_dx: 0,
-    left_leg_dy: 0,
-    right_leg_dx: 0,
-    right_leg_dy: 0,
-    arms_up: false,
+    cloak_flare: 0,
+    left_foot_dx: 0,
+    right_foot_dx: 0,
+    hood_up: false,
+    arms_out: false,
 };
 
-fn draw_player_frame(img: &mut RgbaImage, frame_x: i32, pose: Pose) {
-    let cx = frame_x + 16;
-    let head_y = 2 + pose.head_dy;
-    let torso_y = 16 + pose.body_dy;
-    let leg_top = torso_y + 13;
+fn draw_player_frame(img: &mut RgbaImage, frame_x: i32, pose: PlayerPose) {
+    let cx = frame_x + PLAYER_FRAME_W / 2;
+    let head_y = 3 + pose.body_dy;
 
-    // === Tête ===
-    // Cheveux : couronne haut + côtés
-    rect(img, cx - 5, head_y, 10, 4, HAIR);
-    rect(img, cx - 6, head_y + 1, 1, 4, HAIR);
-    rect(img, cx + 5, head_y + 1, 1, 4, HAIR);
-    // Visage (peau)
-    rect(img, cx - 5, head_y + 4, 10, 8, SKIN);
-    // Mèches qui pendent sur les côtés du visage
-    put(img, cx - 5, head_y + 4, HAIR);
-    put(img, cx + 4, head_y + 4, HAIR);
-    // Ombre menton
-    hline(img, cx - 4, head_y + 11, 8, SKIN_DK);
-    // Yeux
-    put(img, cx - 3, head_y + 7, EYE);
-    put(img, cx + 2, head_y + 7, EYE);
-    // Bouche
-    hline(img, cx - 1, head_y + 9, 2, SKIN_DK);
+    // === Capuche : pointe étroite qui s'élargit en cloche ===
+    // Pointe (1-2 px de large)
+    rect(img, cx - 1, head_y, 2, 1, CLOAK);
+    rect(img, cx - 2, head_y + 1, 4, 1, CLOAK);
+    // Mid-haut (4 px)
+    rect(img, cx - 3, head_y + 2, 6, 2, CLOAK);
+    // Couronne / élargissement
+    rect(img, cx - 5, head_y + 4, 10, 2, CLOAK);
+    // Capuche basse (s'évase pour englober la tête)
+    rect(img, cx - 6, head_y + 6, 12, 4, CLOAK);
 
-    // === Cou ===
-    rect(img, cx - 2, head_y + 12, 4, 2, SKIN);
-
-    // === Torse (chemise) ===
-    rect(img, cx - 5, torso_y, 10, 12, SHIRT);
-    // Encolure et ombrage
-    hline(img, cx - 3, torso_y, 6, SHIRT_DK);
-    hline(img, cx - 5, torso_y + 11, 10, SHIRT_DK);
-    // Petite bande verticale sombre au centre (manteau ouvert)
-    rect(img, cx - 1, torso_y + 1, 2, 10, SHIRT_DK);
-
-    // === Bras ===
-    if pose.arms_up {
-        // Bras levés (saut) : montent au-dessus de la tête
-        rect(img, cx - 5, head_y, 2, 6, SHIRT);
-        rect(img, cx + 3, head_y, 2, 6, SHIRT);
-        // Mains
-        rect(img, cx - 5, head_y - 1, 2, 1, SKIN);
-        rect(img, cx + 3, head_y - 1, 2, 1, SKIN);
-    } else {
-        let la_x = cx - 7 + pose.left_arm_dx;
-        let la_y = torso_y + 1 + pose.left_arm_dy;
-        let ra_x = cx + 5 + pose.right_arm_dx;
-        let ra_y = torso_y + 1 + pose.right_arm_dy;
-        rect(img, la_x, la_y, 2, 9, SHIRT);
-        rect(img, ra_x, ra_y, 2, 9, SHIRT);
-        // Mains
-        rect(img, la_x, la_y + 9, 2, 2, SKIN);
-        rect(img, ra_x, ra_y + 9, 2, 2, SKIN);
+    // === Mèche blanche en bas de la capuche (dépasse à l'arrière) ===
+    if !pose.hood_up {
+        // Une touffe à l'arrière du cou + sur le côté
+        rect(img, cx - 5, head_y + 9, 3, 2, HAIR);
+        put(img, cx - 6, head_y + 9, HAIR);
+        put(img, cx - 5, head_y + 11, HAIR);
     }
 
-    // === Ceinture ===
-    hline(img, cx - 5, torso_y + 12, 10, EYE);
+    // === Visage dans le creux de la capuche ===
+    let face_y = head_y + 6;
+    // Patch pâle clairement délimité
+    rect(img, cx - 2, face_y, 5, 3, SKIN);
+    // Ombre supérieure (l'ombre de la capuche)
+    hline(img, cx - 2, face_y, 5, SKIN_DK);
+    // Deux yeux clairement séparés
+    put(img, cx - 1, face_y + 1, EYE);
+    put(img, cx + 1, face_y + 1, EYE);
 
-    // === Jambes + pantalon ===
-    let ll_x = cx - 5 + pose.left_leg_dx;
-    let rl_x = cx + 1 + pose.right_leg_dx;
-    let ll_y = leg_top;
-    let rl_y = leg_top;
-    let ll_h = 10 + pose.left_leg_dy;
-    let rl_h = 10 + pose.right_leg_dy;
-    rect(img, ll_x, ll_y, 4, ll_h, PANTS);
-    rect(img, rl_x, rl_y, 4, rl_h, PANTS);
-    // Ombrage pantalon
-    rect(img, ll_x, ll_y + ll_h - 1, 4, 1, PANTS_DK);
-    rect(img, rl_x, rl_y + rl_h - 1, 4, 1, PANTS_DK);
+    // === Épaules : la cape s'élargit nettement ===
+    let shoulder_y = head_y + 10;
+    rect(img, cx - 7, shoulder_y, 14, 3, CLOAK);
+    // Edge highlight gauche pour donner du volume
+    vline(img, cx - 7, shoulder_y, 3, CLOAK_EDGE);
+    // Trace sombre sous le col (sépare visuellement des épaules)
+    hline(img, cx - 5, shoulder_y + 2, 10, CLOAK_DK);
 
-    // === Bottes ===
-    rect(img, ll_x - 1, ll_y + ll_h, 6, 3, BOOTS);
-    rect(img, rl_x - 1, rl_y + rl_h, 6, 3, BOOTS);
+    // === Cœur ambre (broche ou rune sur la cape) ===
+    put(img, cx, shoulder_y + 1, AMBER);
+
+    // === Corps de la cape (s'élargit en bas — flare) ===
+    let body_top = shoulder_y + 3;
+    let body_h = 14;
+    for row in 0..body_h {
+        let t = row as f32 / body_h as f32;
+        let base = 12;
+        let flare = (t * t * 4.0) as i32 + pose.cloak_flare;
+        let width = (base + flare).min(20);
+        rect(img, cx - width / 2, body_top + row, width, 1, CLOAK);
+    }
+
+    // === Edge highlight verticale sur le bord gauche du corps ===
+    for row in 0..body_h {
+        let t = row as f32 / body_h as f32;
+        let base = 12;
+        let flare = (t * t * 4.0) as i32 + pose.cloak_flare;
+        let width = (base + flare).min(20);
+        let left_x = cx - width / 2;
+        put(img, left_x, body_top + row, CLOAK_EDGE);
+    }
+
+    // === Bord inférieur (hem sombre, irrégulier) ===
+    let hem_y = body_top + body_h;
+    let hem_width = (12 + 4 + pose.cloak_flare).min(20);
+    rect(img, cx - hem_width / 2, hem_y, hem_width, 1, CLOAK_DK);
+    // Léger débord en zig-zag (3 px qui dépassent)
+    put(img, cx - hem_width / 2 + 2, hem_y + 1, CLOAK_DK);
+    put(img, cx - hem_width / 2 + (hem_width / 2), hem_y + 1, CLOAK_DK);
+    put(img, cx - hem_width / 2 + hem_width - 3, hem_y + 1, CLOAK_DK);
+
+    // === Bras écartés (chute uniquement) ===
+    if pose.arms_out {
+        rect(img, cx - 10, body_top + 1, 2, 6, CLOAK);
+        rect(img, cx + 8, body_top + 1, 2, 6, CLOAK);
+        // Petites mains pâles
+        put(img, cx - 10, body_top + 7, SKIN_DK);
+        put(img, cx + 9, body_top + 7, SKIN_DK);
+    }
+
+    // === Pieds (2 mini-blocks sombres sous la cape) ===
+    let feet_y = hem_y + 2;
+    rect(img, cx - 3 + pose.left_foot_dx, feet_y, 2, 2, EYE);
+    rect(img, cx + 1 + pose.right_foot_dx, feet_y, 2, 2, EYE);
 }
 
 fn make_player() {
-    // 7 frames de 32x48, sprite sheet 224x48.
-    let mut img = RgbaImage::from_pixel(224, 48, TR);
+    let mut img = RgbaImage::from_pixel(
+        (PLAYER_FRAME_W * 7) as u32,
+        PLAYER_FRAME_H as u32,
+        TR,
+    );
 
     // Frame 0 : idle
-    draw_player_frame(&mut img, 0, IDLE);
+    draw_player_frame(&mut img, 0, POSE_IDLE);
 
-    // Frames 1-4 : run cycle (legs swing + body bob)
-    // Frame 1 : contact, gauche devant
+    // Frames 1-4 : run cycle (la cape s'agite, les pieds alternent)
     draw_player_frame(
         &mut img,
-        32,
-        Pose {
+        PLAYER_FRAME_W,
+        PlayerPose {
             body_dy: 0,
-            head_dy: 0,
-            left_arm_dx: 0,
-            left_arm_dy: 1,
-            right_arm_dx: 0,
-            right_arm_dy: -1,
-            left_leg_dx: -1,
-            left_leg_dy: -2,
-            right_leg_dx: 1,
-            right_leg_dy: -1,
-            arms_up: false,
+            cloak_flare: 1,
+            left_foot_dx: -1,
+            right_foot_dx: 1,
+            hood_up: false,
+            arms_out: false,
         },
     );
-    // Frame 2 : passage haut, gauche en bas
     draw_player_frame(
         &mut img,
-        64,
-        Pose {
+        PLAYER_FRAME_W * 2,
+        PlayerPose {
             body_dy: -1,
-            head_dy: -1,
-            left_arm_dx: 0,
-            left_arm_dy: 0,
-            right_arm_dx: 0,
-            right_arm_dy: 0,
-            left_leg_dx: 0,
-            left_leg_dy: 0,
-            right_leg_dx: 0,
-            right_leg_dy: 0,
-            arms_up: false,
+            cloak_flare: 0,
+            left_foot_dx: 0,
+            right_foot_dx: 0,
+            hood_up: false,
+            arms_out: false,
         },
     );
-    // Frame 3 : contact, droite devant (miroir frame 1)
     draw_player_frame(
         &mut img,
-        96,
-        Pose {
+        PLAYER_FRAME_W * 3,
+        PlayerPose {
             body_dy: 0,
-            head_dy: 0,
-            left_arm_dx: 0,
-            left_arm_dy: -1,
-            right_arm_dx: 0,
-            right_arm_dy: 1,
-            left_leg_dx: -1,
-            left_leg_dy: -1,
-            right_leg_dx: 1,
-            right_leg_dy: -2,
-            arms_up: false,
+            cloak_flare: 1,
+            left_foot_dx: 1,
+            right_foot_dx: -1,
+            hood_up: false,
+            arms_out: false,
         },
     );
-    // Frame 4 : passage haut (re)
     draw_player_frame(
         &mut img,
-        128,
-        Pose {
+        PLAYER_FRAME_W * 4,
+        PlayerPose {
             body_dy: -1,
-            head_dy: -1,
-            left_arm_dx: 0,
-            left_arm_dy: 0,
-            right_arm_dx: 0,
-            right_arm_dy: 0,
-            left_leg_dx: 0,
-            left_leg_dy: 0,
-            right_leg_dx: 0,
-            right_leg_dy: 0,
-            arms_up: false,
+            cloak_flare: 0,
+            left_foot_dx: 0,
+            right_foot_dx: 0,
+            hood_up: false,
+            arms_out: false,
         },
     );
 
-    // Frame 5 : saut (corps remonté, bras levés)
+    // Frame 5 : saut (capuche relevée par le vent, cape étirée)
     draw_player_frame(
         &mut img,
-        160,
-        Pose {
+        PLAYER_FRAME_W * 5,
+        PlayerPose {
             body_dy: -2,
-            head_dy: -2,
-            left_arm_dx: 0,
-            left_arm_dy: 0,
-            right_arm_dx: 0,
-            right_arm_dy: 0,
-            left_leg_dx: 0,
-            left_leg_dy: -3,
-            right_leg_dx: 0,
-            right_leg_dy: -3,
-            arms_up: true,
+            cloak_flare: -1,
+            left_foot_dx: 0,
+            right_foot_dx: 0,
+            hood_up: true,
+            arms_out: false,
         },
     );
-    // Frame 6 : chute (bras écartés)
+
+    // Frame 6 : chute (cape déployée comme des ailes, bras écartés)
     draw_player_frame(
         &mut img,
-        192,
-        Pose {
+        PLAYER_FRAME_W * 6,
+        PlayerPose {
             body_dy: 0,
-            head_dy: 0,
-            left_arm_dx: -2,
-            left_arm_dy: -1,
-            right_arm_dx: 2,
-            right_arm_dy: -1,
-            left_leg_dx: -1,
-            left_leg_dy: -1,
-            right_leg_dx: 1,
-            right_leg_dy: -1,
-            arms_up: false,
+            cloak_flare: 3,
+            left_foot_dx: -2,
+            right_foot_dx: 2,
+            hood_up: false,
+            arms_out: true,
         },
     );
 
     save(&img, "assets/sprites/player.png");
 }
 
-// ============================================================== Tiles ===
+// ============================================================ Tiles ===
 
 fn make_ground_tile() {
-    // 32x32 terre pure, tileable dans les deux directions. La bande
-    // d'herbe est dans un sprite séparé (tile_grass.png) pour qu'elle
-    // n'apparaisse qu'au sommet du sol, pas à chaque répétition Y.
+    // 32x32 terre sombre, tilable XY. Subtils cailloux et lueurs cyan
+    // pour suggérer des résidus magiques.
     let mut img = RgbaImage::from_pixel(32, 32, DIRT);
 
-    // Cailloux dispersés (petits clusters 2x1 pour éviter le bruit).
-    for (x, y) in [
-        (3, 4), (11, 2), (18, 6), (25, 3),
-        (5, 12), (14, 14), (22, 11), (28, 16),
-        (9, 19), (20, 20), (3, 17),
-        (7, 25), (17, 27), (25, 24), (12, 29),
+    // Cailloux clairs et sombres mêlés
+    for (x, y, c) in [
+        (3, 4, DIRT_DK), (11, 2, DIRT_DK), (18, 6, DIRT_DK), (25, 3, DIRT_LT),
+        (5, 12, DIRT_LT), (14, 14, DIRT_DK), (22, 11, DIRT_DK), (28, 16, DIRT_DK),
+        (9, 19, DIRT_DK), (20, 20, DIRT_LT), (3, 17, DIRT_DK),
+        (7, 25, DIRT_DK), (17, 27, DIRT_LT), (25, 24, DIRT_DK), (12, 29, DIRT_DK),
     ] {
-        put(&mut img, x, y, DIRT_DK);
-        put(&mut img, x + 1, y, DIRT_DK);
+        put(&mut img, x, y, c);
+        put(&mut img, x + 1, y, c);
     }
+    // Quelques pixels cyan très discrets (cristaux résiduels)
+    put(&mut img, 9, 8, CYAN_DK);
+    put(&mut img, 23, 22, CYAN_DK);
 
     save(&img, "assets/sprites/tile_ground.png");
 }
 
 fn make_grass_strip() {
-    // 32x12 : bande d'herbe avec seam de terre en bas, à poser sur
-    // le sommet d'un solide. Tilable en X seulement.
-    let mut img = RgbaImage::from_pixel(32, 12, TR);
+    // 32x10 : touffes de mousse irrégulières sur seam terre.
+    // Empilée par-dessus le sol pour ne pas se répéter en Y.
+    let mut img = RgbaImage::from_pixel(32, 10, TR);
 
-    // Brins variables sur le dessus (irréguliers, font une ligne dentelée)
+    // Hauteurs aléatoires-mais-stables
     let heights = [3i32, 5, 2, 4, 6, 3, 5, 4, 2, 5, 3, 4, 6, 3, 5, 4,
                    3, 5, 2, 4, 6, 3, 5, 4, 2, 5, 3, 4, 6, 3, 5, 4];
+
     for x in 0..32 {
-        let top = heights[x as usize];
-        // Pixels d'herbe : du sommet à la base (top = nb px en haut)
-        for dy in 0..(8 - top.min(7)) {
-            put(&mut img, x, top.min(7) + dy, GRASS);
+        let top = heights[x as usize].min(6);
+        // Brin principal
+        for dy in 0..(7 - top) {
+            put(&mut img, x, top + dy, MOSS);
         }
-        // Pixel de surbrillance au sommet
-        put(&mut img, x, top.min(7), GRASS_LT);
+        // Pointe lumineuse
+        put(&mut img, x, top, MOSS_LT);
     }
-    // Ligne sombre marquant la base de l'herbe
-    hline(&mut img, 0, 8, 32, GRASS_DK);
-    // 3 px d'herbe sombre pour assurer la continuité avec la terre
-    rect(&mut img, 0, 9, 32, 3, GRASS_DK);
+
+    // Seam de terre/mousse en bas
+    hline(&mut img, 0, 7, 32, MOSS_DK);
+    rect(&mut img, 0, 8, 32, 2, DIRT);
 
     save(&img, "assets/sprites/tile_grass.png");
 }
 
 fn make_platform_tile() {
-    // 32x32 plein, conçu pour tiler proprement en X. Planches
-    // horizontales avec nœuds discrets pour casser la régularité.
-    let mut img = RgbaImage::from_pixel(32, 32, WOOD);
+    // 32x32 : pierre taillée sombre avec joints, tile XY proprement.
+    let mut img = RgbaImage::from_pixel(32, 32, STONE);
 
-    // Bord supérieur clair (le "rebord" de la planche)
-    rect(&mut img, 0, 0, 32, 2, WOOD_LT);
-    // Petite ombre sous le rebord
-    hline(&mut img, 0, 2, 32, WOOD);
+    // Rangées de pierres décalées
+    // Rangée 1
+    hline(&mut img, 0, 0, 32, STONE_LT);
+    hline(&mut img, 0, 1, 32, STONE);
+    hline(&mut img, 0, 8, 32, STONE_DK);
+    vline(&mut img, 12, 0, 9, STONE_DK);
+    vline(&mut img, 24, 0, 9, STONE_DK);
+    // Rangée 2 (décalée)
+    hline(&mut img, 0, 16, 32, STONE_DK);
+    vline(&mut img, 6, 9, 8, STONE_DK);
+    vline(&mut img, 18, 9, 8, STONE_DK);
+    vline(&mut img, 30, 9, 8, STONE_DK);
+    // Rangée 3
+    hline(&mut img, 0, 24, 32, STONE_DK);
+    vline(&mut img, 12, 17, 8, STONE_DK);
+    vline(&mut img, 24, 17, 8, STONE_DK);
+    // Rangée 4 (décalée)
+    vline(&mut img, 6, 25, 7, STONE_DK);
+    vline(&mut img, 18, 25, 7, STONE_DK);
+    vline(&mut img, 30, 25, 7, STONE_DK);
+    // Bord inférieur
+    hline(&mut img, 0, 31, 32, STONE_DK);
 
-    // Trois lignes de séparation des planches (toutes 8 px)
-    hline(&mut img, 0, 8, 32, WOOD_DK);
-    hline(&mut img, 0, 16, 32, WOOD_DK);
-    hline(&mut img, 0, 24, 32, WOOD_DK);
-    // Joint vertical à mi-tile
-    rect(&mut img, 15, 0, 1, 32, WOOD_DK);
-
-    // Nœuds du bois pour casser la régularité
-    put(&mut img, 7, 5, WOOD_DK);
-    put(&mut img, 23, 11, WOOD_DK);
-    put(&mut img, 5, 19, WOOD_DK);
-    put(&mut img, 27, 27, WOOD_DK);
-
-    // Bord inférieur sombre
-    hline(&mut img, 0, 31, 32, WOOD_DK);
+    // Quelques pixels clairs pour vie
+    put(&mut img, 4, 3, STONE_LT);
+    put(&mut img, 20, 11, STONE_LT);
+    put(&mut img, 8, 19, STONE_LT);
+    put(&mut img, 26, 27, STONE_LT);
 
     save(&img, "assets/sprites/tile_platform.png");
 }
 
 fn make_wall_tile() {
-    // Mur pierre 32x32 : briques.
-    let mut img = RgbaImage::from_pixel(32, 32, STONE);
+    // 32x32 pierre sombre type donjon, joints plus larges.
+    let mut img = RgbaImage::from_pixel(32, 32, STONE_DK);
 
-    // Joints de briques (alternance ligne par ligne)
-    // Rangée 1 : briques de 16
-    hline(&mut img, 0, 7, 32, STONE_DK);
-    rect(&mut img, 15, 0, 1, 8, STONE_DK);
-    // Rangée 2 : décalée
-    hline(&mut img, 0, 15, 32, STONE_DK);
-    rect(&mut img, 7, 8, 1, 8, STONE_DK);
-    rect(&mut img, 23, 8, 1, 8, STONE_DK);
-    // Rangée 3
-    hline(&mut img, 0, 23, 32, STONE_DK);
-    rect(&mut img, 15, 16, 1, 8, STONE_DK);
-    // Rangée 4 : décalée
-    rect(&mut img, 7, 24, 1, 8, STONE_DK);
-    rect(&mut img, 23, 24, 1, 8, STONE_DK);
-
-    // Quelques éclats lumineux
-    for (x, y) in [(3, 3), (19, 11), (10, 19), (26, 27)] {
-        put(&mut img, x, y, Rgba([170, 170, 185, 255]));
+    // Briques massives
+    for row in 0..4 {
+        let y = row * 8;
+        let offset = if row % 2 == 0 { 0 } else { 8 };
+        for col in 0..4 {
+            let x = col * 8 + offset;
+            if x >= 32 {
+                continue;
+            }
+            // Corps de la brique légèrement plus clair
+            rect(&mut img, x + 1, y + 1, 6, 6, STONE);
+            // Highlight subtile en haut-gauche
+            put(&mut img, x + 1, y + 1, STONE_LT);
+        }
     }
 
     save(&img, "assets/sprites/tile_wall.png");
@@ -411,32 +402,32 @@ fn make_wall_tile() {
 // =========================================================== Hazards ===
 
 fn make_spike() {
-    // 32x24 : deux pointes triangulaires sur un socle sombre.
+    // 32x24 : cristal sombre avec arête cyan luminescente.
     let mut img = RgbaImage::from_pixel(32, 24, TR);
 
-    // Socle
-    rect(&mut img, 0, 20, 32, 4, SPIKE_BASE);
+    // Socle bas (ombre du sol)
+    rect(&mut img, 2, 20, 28, 4, CLOAK_DK);
 
-    // Deux triangles. Pointe à y=4, base à y=20.
-    let draw_spike = |img: &mut RgbaImage, base_x: i32| {
-        // Triangle : à chaque y, la largeur double.
+    let draw_crystal = |img: &mut RgbaImage, base_x: i32| {
+        // Triangle sombre
         for row in 0..16 {
             let y = 4 + row;
             let width = row + 1;
-            let x_start = base_x - width / 2 - (width % 2);
-            rect(img, x_start, y, width * 2 - 1, 1, SPIKE_LT);
+            let x = base_x - width / 2;
+            rect(img, x, y, width * 2 - 1, 1, STONE);
+            // Côté droit assombri
+            put(img, x + width * 2 - 2, y, STONE_DK);
         }
-        // Ombre verticale à droite
-        for row in 4..16 {
-            let y = 4 + row;
-            let width = row + 1;
-            let x_end = base_x + width - 1;
-            put(img, x_end - 1, y, SPIKE_DK);
-        }
+        // Arête cyan au centre (luminescence)
+        vline(img, base_x, 5, 14, CYAN);
+        vline(img, base_x - 1, 6, 12, CYAN_DK);
+        // Pointe extra brillante
+        put(img, base_x, 4, CYAN_BRIGHT);
+        put(img, base_x, 5, CYAN_BRIGHT);
     };
 
-    draw_spike(&mut img, 8);
-    draw_spike(&mut img, 24);
+    draw_crystal(&mut img, 8);
+    draw_crystal(&mut img, 24);
 
     save(&img, "assets/sprites/spike.png");
 }
@@ -444,67 +435,217 @@ fn make_spike() {
 // ========================================================== Drapeaux ===
 
 fn make_checkpoint() {
-    // 32x64 : mât + drapeau triangulaire.
+    // 32x64 : lanterne sur poteau. Cyan = inactif (froid), tinted en
+    // ambre/vert dans le code quand activé.
     let mut img = RgbaImage::from_pixel(32, 64, TR);
 
-    // Socle
+    // Socle pierre
     rect(&mut img, 8, 60, 16, 4, STONE_DK);
     rect(&mut img, 6, 58, 20, 2, STONE);
+    // Highlight socle
+    hline(&mut img, 8, 58, 16, STONE_LT);
 
-    // Mât
-    rect(&mut img, 14, 4, 3, 58, POLE);
-    rect(&mut img, 14, 4, 1, 58, POLE_DK);
-    // Pommeau au sommet
-    rect(&mut img, 13, 2, 5, 2, CHECK_FLAG);
+    // Mât (bois ou métal sombre)
+    rect(&mut img, 14, 18, 4, 42, CLOAK);
+    // Edge clair
+    vline(&mut img, 14, 18, 42, CLOAK_EDGE);
 
-    // Drapeau (triangle pointant à droite)
-    let flag_top = 6;
-    for row in 0..16 {
-        let y = flag_top + row;
-        let width = if row < 8 { 14 - row } else { row - 2 };
-        if width > 0 {
-            rect(&mut img, 17, y, width, 1, CHECK_FLAG);
-            // Ombre sur la bordure droite
-            put(&mut img, 17 + width - 1, y, CHECK_FLAG_DK);
-        }
-    }
+    // Bras horizontal (où pend la lanterne)
+    rect(&mut img, 11, 14, 10, 2, CLOAK);
+    put(&mut img, 11, 14, CLOAK_EDGE);
+
+    // Chaîne (3 px verticaux entre le bras et la lanterne)
+    vline(&mut img, 16, 16, 2, CLOAK_DK);
+
+    // Lanterne (cadre sombre)
+    rect(&mut img, 11, 18, 10, 12, CLOAK);
+    rect(&mut img, 10, 19, 1, 10, CLOAK);
+    rect(&mut img, 21, 19, 1, 10, CLOAK);
+    // Toit de la lanterne
+    rect(&mut img, 10, 17, 12, 1, CLOAK_DK);
+
+    // Vitre (cristal cyan luminescent à l'intérieur)
+    rect(&mut img, 13, 20, 6, 8, CYAN_DK);
+    rect(&mut img, 14, 21, 4, 6, CYAN);
+    rect(&mut img, 15, 22, 2, 4, CYAN_BRIGHT);
+    // Point central très brillant
+    put(&mut img, 15, 23, AMBER_BRIGHT);
+    put(&mut img, 16, 23, AMBER_BRIGHT);
+
+    // Halo cyan autour de la lanterne (quelques pixels semi-transparents)
+    let halo = Rgba([108, 196, 232, 80]);
+    put(&mut img, 9, 23, halo);
+    put(&mut img, 22, 23, halo);
+    put(&mut img, 15, 16, halo);
+    put(&mut img, 16, 30, halo);
 
     save(&img, "assets/sprites/checkpoint.png");
 }
 
 fn make_goal() {
-    // 48x80 : grand drapeau de fin
+    // 48x80 : torii sombre avec cristal géant suspendu au centre, halo
+    // ambre. C'est la fin du niveau : doit pop.
     let mut img = RgbaImage::from_pixel(48, 80, TR);
 
-    // Socle large en pierre
-    rect(&mut img, 10, 75, 28, 5, STONE_DK);
-    rect(&mut img, 8, 72, 32, 3, STONE);
+    // Socle large
+    rect(&mut img, 8, 75, 32, 5, STONE_DK);
+    rect(&mut img, 6, 72, 36, 3, STONE);
+    hline(&mut img, 8, 72, 32, STONE_LT);
 
-    // Mât
-    rect(&mut img, 22, 6, 4, 70, POLE);
-    rect(&mut img, 22, 6, 1, 70, POLE_DK);
-    // Pommeau doré
-    rect(&mut img, 20, 3, 8, 3, CHECK_FLAG);
-    rect(&mut img, 21, 1, 6, 2, CHECK_FLAG_DK);
+    // Deux piliers
+    rect(&mut img, 8, 16, 5, 56, CLOAK);
+    rect(&mut img, 35, 16, 5, 56, CLOAK);
+    // Edge highlights
+    vline(&mut img, 8, 16, 56, CLOAK_EDGE);
+    vline(&mut img, 35, 16, 56, CLOAK_EDGE);
 
-    // Drapeau ondulé (rectangle avec sinusoïdes simulées)
-    let flag_top = 8;
-    for row in 0..32 {
-        let y = flag_top + row;
-        // Ondulation : amplitude 2 px
-        let phase = (row as f32 * 0.5).sin();
-        let x_off = (phase * 2.0) as i32;
-        let width = 18;
-        rect(&mut img, 26 + x_off, y, width, 1, GOAL_FLAG);
-        // Ombre en bas
-        if row % 4 == 3 {
-            rect(&mut img, 26 + x_off, y, width, 1, GOAL_FLAG_DK);
-        }
-        // Bordure droite plus sombre
-        put(&mut img, 26 + x_off + width - 1, y, GOAL_FLAG_DK);
+    // Linteau supérieur (torii)
+    rect(&mut img, 4, 12, 40, 4, CLOAK);
+    rect(&mut img, 2, 14, 44, 2, CLOAK_DK);
+    // Liseré clair
+    hline(&mut img, 4, 12, 40, CLOAK_EDGE);
+
+    // Linteau inférieur (plus petit)
+    rect(&mut img, 10, 22, 28, 3, CLOAK);
+
+    // Cristal central suspendu (rotation diamant, gros)
+    let cx = 24;
+    let crystal_y = 32;
+    // Diamant 12 wide x 16 tall centré
+    for row in 0..16 {
+        let half_width = if row < 8 { row + 1 } else { 16 - row };
+        let y = crystal_y + row;
+        rect(&mut img, cx - half_width, y, half_width * 2, 1, AMBER_DK);
+    }
+    // Cœur du cristal (plus brillant)
+    for row in 0..12 {
+        let half_width = if row < 6 { row + 1 } else { 12 - row };
+        let y = crystal_y + 2 + row;
+        rect(&mut img, cx - half_width, y, half_width * 2, 1, AMBER);
+    }
+    // Highlight blanc
+    rect(&mut img, cx - 2, crystal_y + 5, 1, 6, AMBER_BRIGHT);
+    put(&mut img, cx - 1, crystal_y + 4, AMBER_BRIGHT);
+    put(&mut img, cx, crystal_y + 4, AMBER_BRIGHT);
+
+    // Halo (pixels semi-transparents tout autour)
+    let halo = Rgba([232, 168, 76, 100]);
+    let halo_dim = Rgba([232, 168, 76, 50]);
+    for (dx, dy) in [
+        (-6, 0), (6, 0), (0, -8), (0, 12),
+        (-5, -5), (5, -5), (-5, 5), (5, 5),
+    ] {
+        put(&mut img, cx + dx, crystal_y + 8 + dy, halo);
+    }
+    for (dx, dy) in [
+        (-9, 0), (9, 0), (-7, -7), (7, -7), (-7, 7), (7, 7),
+        (0, -10), (0, 14),
+    ] {
+        put(&mut img, cx + dx, crystal_y + 8 + dy, halo_dim);
     }
 
     save(&img, "assets/sprites/goal.png");
+}
+
+// ====================================================== Parallax bg ===
+
+fn make_parallax_back() {
+    // 256x180 : silhouettes lointaines de pics + étoiles éparses.
+    // Tilable en X seulement.
+    let mut img = RgbaImage::from_pixel(256, 180, TR);
+
+    // Étoiles dispersées dans le ciel haut
+    for (x, y, c) in [
+        (12, 8, HAIR), (47, 15, HAIR), (89, 4, HAIR), (134, 12, HAIR),
+        (170, 6, HAIR), (211, 18, HAIR), (240, 9, HAIR),
+        (30, 30, SKIN_DK), (108, 24, SKIN_DK), (190, 36, SKIN_DK),
+        (3, 22, CYAN), (75, 40, CYAN), (158, 28, CYAN_DK), (228, 44, CYAN_DK),
+    ] {
+        put(&mut img, x, y, c);
+    }
+
+    // Crêtes de montagnes lointaines (silhouette douce)
+    let peaks_y = 80;
+    let peaks = [
+        (0, 0), (20, 30), (40, 15), (60, 45), (80, 20),
+        (100, 35), (120, 10), (140, 40), (160, 25),
+        (180, 50), (200, 15), (220, 35), (240, 20), (256, 30),
+    ];
+    // On dessine les triangles entre paires successives
+    let mountain_color = Rgba([26, 38, 56, 255]);
+    for w in peaks.windows(2) {
+        let (x0, h0) = w[0];
+        let (x1, h1) = w[1];
+        let dx = x1 - x0;
+        for px in 0..dx {
+            let t = px as f32 / dx as f32;
+            let h = (h0 as f32 * (1.0 - t) + h1 as f32 * t) as i32;
+            rect(&mut img, x0 + px, peaks_y - h, 1, h + (180 - peaks_y), mountain_color);
+        }
+    }
+
+    save(&img, "assets/sprites/parallax_back.png");
+}
+
+fn make_parallax_mid() {
+    // 256x140 : silhouettes plus rapprochées, légèrement plus sombres.
+    let mut img = RgbaImage::from_pixel(256, 140, TR);
+
+    let peaks_y = 60;
+    let peaks = [
+        (0, 20), (35, 60), (70, 30), (105, 75),
+        (140, 40), (175, 65), (210, 35), (245, 70), (256, 40),
+    ];
+    let color = Rgba([16, 26, 44, 255]);
+    for w in peaks.windows(2) {
+        let (x0, h0) = w[0];
+        let (x1, h1) = w[1];
+        let dx = x1 - x0;
+        for px in 0..dx {
+            let t = px as f32 / dx as f32;
+            let h = (h0 as f32 * (1.0 - t) + h1 as f32 * t) as i32;
+            rect(&mut img, x0 + px, peaks_y - h, 1, h + (140 - peaks_y), color);
+        }
+    }
+
+    save(&img, "assets/sprites/parallax_mid.png");
+}
+
+fn make_parallax_front() {
+    // 256x100 : forêt en silhouette avec arbres "puffy" type Camille.
+    let mut img = RgbaImage::from_pixel(256, 100, TR);
+
+    let ground_y = 70;
+    let color = Rgba([8, 14, 24, 255]);
+
+    // Sol ondulé
+    let ground_dy = [0i32, 2, 4, 3, 1, 2, 5, 3, 1, 0, 2, 4, 3, 1, 2, 5,
+                     3, 1, 0, 2, 4, 3, 1, 2, 5, 3, 1, 0, 2, 4, 3, 1];
+    for x in 0..256 {
+        let dy = ground_dy[(x as usize) % ground_dy.len()];
+        rect(&mut img, x, ground_y + dy, 1, 100 - ground_y - dy, color);
+    }
+
+    // Arbres puffy à intervalles
+    let tree_positions = [16, 56, 92, 128, 168, 208, 240];
+    for &tx in &tree_positions {
+        // Tronc fin
+        rect(&mut img, tx - 1, ground_y - 8, 3, 12, Rgba([12, 20, 32, 255]));
+        // Feuillage en cercle pixelisé
+        let leaf_color = Rgba([18, 30, 56, 255]);
+        let leaf_y = ground_y - 16;
+        // Boule du haut
+        rect(&mut img, tx - 4, leaf_y, 9, 9, leaf_color);
+        rect(&mut img, tx - 5, leaf_y + 2, 1, 5, leaf_color);
+        rect(&mut img, tx + 5, leaf_y + 2, 1, 5, leaf_color);
+        // Boule du bas (plus large)
+        let leaf2_y = ground_y - 12;
+        rect(&mut img, tx - 5, leaf2_y, 11, 6, leaf_color);
+        rect(&mut img, tx - 6, leaf2_y + 1, 1, 4, leaf_color);
+        rect(&mut img, tx + 6, leaf2_y + 1, 1, 4, leaf_color);
+    }
+
+    save(&img, "assets/sprites/parallax_front.png");
 }
 
 // =============================================================== main ===
@@ -518,5 +659,8 @@ fn main() {
     make_spike();
     make_checkpoint();
     make_goal();
+    make_parallax_back();
+    make_parallax_mid();
+    make_parallax_front();
     println!("Assets générés dans assets/sprites/");
 }

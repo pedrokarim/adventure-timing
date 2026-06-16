@@ -33,7 +33,14 @@ contre un mur, puis trois piliers étroits avant le drapeau rose.
 - Le **drapeau rose** termine le niveau et affiche le temps + le nombre
   de morts.
 
-## Features v1.1
+## Direction artistique
+
+Palette **nuit mystique** inspirée du travail de Camille Unknown
+(références dans `assets/inspirations/`) : dominantes teal/bleu nuit,
+silhouettes encapuchonnées, accents cyan (cristaux) et ambre (cœur du
+goal). Forêt en silhouette, étoiles, mountains.
+
+## Features v1.2
 
 - Contrôleur platformer kinematic complet (coyote, buffer, saut variable)
 - Collisions AABB axe par axe contre solides statiques

@@ -1,45 +1,53 @@
-//! Décor de fond avec parallaxe. Plusieurs couches de rectangles
-//! colorés défilent à un fraction de la vitesse de la caméra pour créer
-//! l'illusion de profondeur. Pas d'assets externes : couleurs unies +
-//! géométrie simple répétée le long de l'axe X.
+//! Décor de fond parallaxé en 3 couches : pics lointains avec étoiles,
+//! pics intermédiaires, forêt en silhouette au premier plan. Toutes les
+//! textures sont générées dans examples/gen_assets.rs.
 
 use bevy::prelude::*;
 
-/// Couches arrière → avant. Plus le facteur est petit, plus c'est loin.
+struct ParallaxLayer {
+    /// 0 = fixe au monde, 1 = collé à la caméra. Plus petit = plus loin.
+    factor: f32,
+    /// Path de la texture relative à `assets/`.
+    texture: &'static str,
+    /// Y en coordonnées monde où l'image est centrée.
+    y: f32,
+    /// Taille rendue de la tuile en monde. La largeur sert à tiler le long
+    /// de la caméra ; la hauteur correspond à la hauteur native du PNG.
+    size: Vec2,
+    /// Profondeur Z (toujours négative pour rester derrière le gameplay).
+    z: f32,
+}
+
 const LAYERS: &[ParallaxLayer] = &[
+    // Pics lointains avec étoiles
     ParallaxLayer {
-        factor: 0.15,
-        color: Color::srgb(0.30, 0.45, 0.65),
-        y: -120.0,
-        height: 700.0,
+        factor: 0.10,
+        texture: "sprites/parallax_back.png",
+        y: 60.0,
+        size: Vec2::new(512.0, 360.0),
+        z: -12.0,
     },
+    // Pics moyens
     ParallaxLayer {
-        factor: 0.35,
-        color: Color::srgb(0.22, 0.38, 0.55),
-        y: -180.0,
-        height: 500.0,
+        factor: 0.30,
+        texture: "sprites/parallax_mid.png",
+        y: -30.0,
+        size: Vec2::new(512.0, 280.0),
+        z: -11.0,
     },
+    // Forêt en silhouette devant
     ParallaxLayer {
-        factor: 0.60,
-        color: Color::srgb(0.18, 0.32, 0.45),
-        y: -240.0,
-        height: 320.0,
+        factor: 0.55,
+        texture: "sprites/parallax_front.png",
+        y: -160.0,
+        size: Vec2::new(512.0, 200.0),
+        z: -10.0,
     },
 ];
 
-/// Largeur d'une tuile de fond. On en spawne assez pour couvrir le
-/// niveau + une marge confortable.
-const TILE_WIDTH: f32 = 480.0;
-const TILE_COUNT: i32 = 14;
+/// Nombre de tuiles spawnées par couche pour couvrir le niveau.
+const TILE_COUNT: i32 = 10;
 const START_X: f32 = -1400.0;
-
-#[derive(Clone, Copy)]
-struct ParallaxLayer {
-    factor: f32,
-    color: Color,
-    y: f32,
-    height: f32,
-}
 
 #[derive(Component)]
 struct Parallax {
@@ -56,26 +64,22 @@ impl Plugin for ParallaxPlugin {
     }
 }
 
-fn spawn_layers(mut commands: Commands) {
-    for (depth, layer) in LAYERS.iter().enumerate() {
-        // Le Z est négatif pour passer derrière les sprites du jeu.
-        let z = -10.0 - depth as f32;
-        // Légère variation de hauteur pour casser l'effet "rectangle".
+fn spawn_layers(mut commands: Commands, asset_server: Res<AssetServer>) {
+    for layer in LAYERS {
         for i in 0..TILE_COUNT {
-            let x = START_X + i as f32 * TILE_WIDTH;
-            let bump = ((i as f32) * 1.7 + depth as f32 * 0.3).sin() * 30.0;
+            let x = START_X + i as f32 * layer.size.x;
             commands.spawn((
                 Parallax {
                     factor: layer.factor,
                     base_x: x,
                 },
                 SpriteBundle {
+                    texture: asset_server.load(layer.texture),
                     sprite: Sprite {
-                        color: layer.color,
-                        custom_size: Some(Vec2::new(TILE_WIDTH + 4.0, layer.height + bump)),
+                        custom_size: Some(layer.size),
                         ..default()
                     },
-                    transform: Transform::from_xyz(x, layer.y + bump * 0.5, z),
+                    transform: Transform::from_xyz(x, layer.y, layer.z),
                     ..default()
                 },
             ));
@@ -91,8 +95,6 @@ fn update_parallax(
         return;
     };
     for (parallax, mut transform) in &mut layers {
-        // (1 - factor) revient à dire : si factor=1 le tile reste collé à
-        // la caméra (pas de parallaxe), si factor=0 il reste fixe au monde.
         transform.translation.x = parallax.base_x + cam.translation.x * (1.0 - parallax.factor);
     }
 }

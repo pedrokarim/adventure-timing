@@ -13,7 +13,8 @@ use bevy::prelude::*;
 const WINDOW_TITLE: &str = "Adventure Timing";
 const WINDOW_WIDTH: f32 = 1280.0;
 const WINDOW_HEIGHT: f32 = 720.0;
-const SKY: Color = Color::srgb(0.45, 0.65, 0.85);
+// Ciel nuit mystique : teal très sombre, plus bleu que noir.
+const SKY: Color = Color::srgb(0.06, 0.10, 0.16);
 
 fn main() {
     App::new()
