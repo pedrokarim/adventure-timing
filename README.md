@@ -40,6 +40,16 @@ Palette **nuit mystique** inspirée du travail de Camille Unknown
 silhouettes encapuchonnées, accents cyan (cristaux) et ambre (cœur du
 goal). Forêt en silhouette, étoiles, mountains.
 
+## Features v1.3
+
+- Menu principal interactif (boutons, navigation clavier + souris)
+- Écrans Paramètres (plein écran + 3 volumes) et Crédits
+- Sauvegarde persistante (`~/.local/share/adventure_timing/`) : meilleur
+  temps, moins de morts, runs complétées
+- SFX procéduraux (saut, atterrissage, mort, checkpoint, victoire)
+- Support manette via `bevy_gilrs`
+- Police DejaVu Sans Mono (gère tous les accents FR)
+
 ## Features v1.2
 
 - Contrôleur platformer kinematic complet (coyote, buffer, saut variable)

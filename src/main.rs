@@ -1,9 +1,11 @@
+mod audio;
 mod camera;
 mod effects;
 mod level;
 mod parallax;
 mod physics;
 mod player;
+mod save;
 mod states;
 mod ui;
 mod world;
@@ -29,7 +31,9 @@ fn main() {
         }))
         .insert_resource(ClearColor(SKY))
         .add_plugins((
+            save::SavePlugin,
             states::StatesPlugin,
+            audio::AudioPlugin,
             physics::PhysicsPlugin,
             world::WorldPlugin,
             level::LevelPlugin,

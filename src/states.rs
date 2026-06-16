@@ -8,6 +8,8 @@ use bevy::prelude::*;
 pub enum GameState {
     #[default]
     MainMenu,
+    Settings,
+    Credits,
     Playing,
     Paused,
     GameOver,

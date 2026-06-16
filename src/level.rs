@@ -2,6 +2,7 @@
 //! Tout est testé par AABB contre la hitbox du joueur dans son propre
 //! système, séparé de la physique de collision solide.
 
+use crate::audio::CheckpointReached;
 use crate::physics::Collider;
 use crate::player::Player;
 use crate::states::{GameState, PlayerDied, PlayerWon};
@@ -83,6 +84,7 @@ fn check_checkpoints(
     player: Query<(&Transform, &Collider), With<Player>>,
     mut checkpoints: Query<(&Transform, &Collider, &mut Checkpoint, &mut Sprite)>,
     mut respawn: ResMut<RespawnPoint>,
+    mut reached: EventWriter<CheckpointReached>,
 ) {
     let Ok((p_t, p_c)) = player.get_single() else {
         return;
@@ -94,6 +96,7 @@ fn check_checkpoints(
             chk.triggered = true;
             sprite.color = CHECKPOINT_ACTIVE;
             respawn.0 = chk.spawn_point;
+            reached.send(CheckpointReached);
         }
     }
 }

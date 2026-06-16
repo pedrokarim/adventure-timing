@@ -1,12 +1,8 @@
 # Linker rapide pour accélérer les rebuilds (Bevy = gros graphe de symboles).
 #
-# Pour activer sur Linux :
-#   sudo apt install clang mold
-# puis décommente le bloc ci-dessous.
-#
-# [target.x86_64-unknown-linux-gnu]
-# linker = "clang"
-# rustflags = ["-C", "link-arg=-fuse-ld=mold"]
+[target.x86_64-unknown-linux-gnu]
+linker = "clang"
+rustflags = ["-C", "link-arg=-fuse-ld=mold"]
 
 # macOS : décommenter pour utiliser lld via Homebrew (brew install llvm)
 # [target.x86_64-apple-darwin]

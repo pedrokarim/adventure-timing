@@ -1,6 +1,7 @@
 //! Effets visuels : screen shake de la caméra, squash & stretch du
 //! joueur, particules de poussière au saut et à l'atterrissage.
 
+use crate::audio::PlayerLanded;
 use crate::physics::{Grounded, Velocity};
 use crate::player::Player;
 use bevy::prelude::*;
@@ -94,16 +95,15 @@ fn spawn_dust_on_events(
     mut commands: Commands,
     q: Query<(&Transform, &Velocity, &Grounded, &SquashStretch), With<Player>>,
     mut shake: ResMut<ScreenShake>,
+    mut landed: EventWriter<PlayerLanded>,
 ) {
     for (transform, velocity, grounded, state) in &q {
-        // Détection atterrissage : transition aérien → sol.
         if grounded.0 && !state.was_grounded {
-            // Atterrissage = dust + petit shake proportionnel à la vitesse.
             let impact = (velocity.0.y.abs() / 600.0).clamp(0.0, 1.0);
             shake.add(impact * 0.35);
             spawn_dust_burst(&mut commands, transform.translation.truncate(), 8, false);
+            landed.send(PlayerLanded(impact));
         }
-        // Détection saut : on vient de quitter le sol vers le haut.
         if !grounded.0 && state.was_grounded && velocity.0.y > 200.0 {
             spawn_dust_burst(&mut commands, transform.translation.truncate(), 5, true);
         }

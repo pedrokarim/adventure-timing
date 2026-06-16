@@ -2,6 +2,7 @@
 //! saut avec coyote time, jump buffer, saut variable, plus le rig
 //! d'animation par texture atlas (7 frames, voir examples/gen_assets.rs).
 
+use crate::audio::PlayerJumped;
 use crate::effects::{ScreenShake, SquashStretch};
 use crate::level::RespawnPoint;
 use crate::physics::{Collider, Grounded, PhysicsSet, Velocity};
@@ -226,6 +227,7 @@ fn handle_horizontal_input(
 fn handle_jump_input(
     keys: Res<ButtonInput<KeyCode>>,
     mut q: Query<(&mut Velocity, &mut PlayerController, &Grounded), With<Player>>,
+    mut jumped: EventWriter<PlayerJumped>,
 ) {
     let jump_pressed = keys.just_pressed(KeyCode::Space)
         || keys.just_pressed(KeyCode::ArrowUp)
@@ -247,6 +249,7 @@ fn handle_jump_input(
             ctrl.is_jumping = true;
             ctrl.jump_buffer_timer = JUMP_BUFFER;
             ctrl.coyote_timer = COYOTE_TIME;
+            jumped.send(PlayerJumped);
         }
 
         if jump_released && ctrl.is_jumping && velocity.0.y > 0.0 {

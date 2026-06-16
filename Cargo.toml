@@ -4,15 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-# gilrs (manette) désactivé : il dépend de libudev côté système, non
-# installé ici. Pour le réactiver plus tard : sudo apt install libudev-dev,
-# puis remettre "bevy_gilrs" dans la liste de features.
 bevy = { version = "0.14", default-features = false, features = [
     "animation",
     "bevy_asset",
     "bevy_audio",
     "bevy_color",
     "bevy_core_pipeline",
+    "bevy_gilrs",
     "bevy_gizmos",
     "bevy_render",
     "bevy_scene",
@@ -28,6 +26,9 @@ bevy = { version = "0.14", default-features = false, features = [
     "x11",
     "dynamic_linking",
 ] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+directories = "5"
 
 # Compile dépendances en optimisé même en dev (gros gain de perf, surcoût
 # de compilation payé une fois).
@@ -35,10 +36,16 @@ bevy = { version = "0.14", default-features = false, features = [
 # Utilisé uniquement par examples/gen_assets.rs pour générer les PNGs
 # en pixel art. Pas embarqué dans le binaire du jeu.
 image = { version = "0.25", default-features = false, features = ["png"] }
+# Génération de WAV procéduraux pour les SFX (examples/gen_audio.rs).
+hound = "3.5"
 
 [[example]]
 name = "gen_assets"
 path = "examples/gen_assets.rs"
+
+[[example]]
+name = "gen_audio"
+path = "examples/gen_audio.rs"
 
 [profile.dev.package."*"]
 opt-level = 3
