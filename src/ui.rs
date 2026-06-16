@@ -8,10 +8,13 @@
 //! Enter), action déclenchée via `MenuAction` (composant attaché à
 //! chaque bouton).
 
+use crate::audio::CheckpointReached;
 use crate::heroes::{Hero, SelectedHero};
+use crate::items::{ActiveEffects, ItemKind, ItemPickedUp};
 use crate::level::{Checkpoint, RespawnPoint};
 use crate::physics::{Grounded, Velocity};
 use crate::player::{Player, PlayerController, PlayerHp};
+use crate::throwables::Inventory;
 use crate::save::{save_data, save_settings, SaveData, Settings};
 use crate::states::{GameState, RunStats};
 use crate::world::{CurrentLevel, PLAYER_SPAWN, TOTAL_LEVELS};
@@ -76,6 +79,28 @@ struct HudHearts;
 
 #[derive(Component)]
 struct HeartIcon(u32);
+
+/// Container des toasts (notifications). Spawné une fois au setup_hud.
+#[derive(Component)]
+struct ToastsContainer;
+
+/// Une notification toast active. TTL puis fade out.
+#[derive(Component)]
+struct Toast {
+    pub remaining: f32,
+    pub initial: f32,
+}
+
+/// Container des slots d'inventaire (3 throwables) en bas-droite.
+#[derive(Component)]
+struct InventoryContainer;
+
+#[derive(Component)]
+struct InventorySlot(usize);
+
+/// Container des effets actifs en haut-droite.
+#[derive(Component)]
+struct EffectsContainer;
 
 #[derive(Component)]
 struct TitleText;
@@ -191,6 +216,11 @@ impl Plugin for UiPlugin {
                     pulse_title,
                     toggle_pause_in_game.run_if(in_state(GameState::Playing)),
                     update_hud.run_if(in_state(GameState::Playing)),
+                    spawn_pickup_toasts.run_if(in_state(GameState::Playing)),
+                    spawn_checkpoint_toast.run_if(in_state(GameState::Playing)),
+                    tick_toasts,
+                    update_inventory_hud.run_if(in_state(GameState::Playing)),
+                    update_effects_hud.run_if(in_state(GameState::Playing)),
                 ),
             );
     }
@@ -279,6 +309,90 @@ fn setup_hud(mut commands: Commands, font: Res<UiFont>) {
                 }
             });
         });
+
+    // Container des toasts (top-right)
+    commands.spawn((
+        HudTag,
+        ToastsContainer,
+        NodeBundle {
+            style: Style {
+                position_type: PositionType::Absolute,
+                top: Val::Px(16.0),
+                right: Val::Px(20.0),
+                flex_direction: FlexDirection::Column,
+                row_gap: Val::Px(6.0),
+                align_items: AlignItems::FlexEnd,
+                ..default()
+            },
+            ..default()
+        },
+    ));
+
+    // Inventaire (bottom-right) — 3 slots bevel rétro
+    commands
+        .spawn((
+            HudTag,
+            InventoryContainer,
+            NodeBundle {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    bottom: Val::Px(20.0),
+                    right: Val::Px(20.0),
+                    flex_direction: FlexDirection::Row,
+                    column_gap: Val::Px(6.0),
+                    ..default()
+                },
+                ..default()
+            },
+        ))
+        .with_children(|p| {
+            for i in 0..3 {
+                p.spawn((
+                    InventorySlot(i),
+                    NodeBundle {
+                        style: Style {
+                            width: Val::Px(44.0),
+                            height: Val::Px(44.0),
+                            border: UiRect::all(Val::Px(3.0)),
+                            align_items: AlignItems::Center,
+                            justify_content: JustifyContent::Center,
+                            ..default()
+                        },
+                        background_color: WOOD_LIGHT.into(),
+                        border_color: WOOD_DARK.into(),
+                        ..default()
+                    },
+                ))
+                .with_children(|p| {
+                    p.spawn(TextBundle::from_section(
+                        "",
+                        TextStyle {
+                            font: font.display.clone(),
+                            font_size: 22.0,
+                            color: WOOD_DARKEST,
+                        },
+                    ));
+                });
+            }
+        });
+
+    // Container des effets actifs (sous les toasts, à droite)
+    commands.spawn((
+        HudTag,
+        EffectsContainer,
+        NodeBundle {
+            style: Style {
+                position_type: PositionType::Absolute,
+                top: Val::Px(120.0),
+                right: Val::Px(20.0),
+                flex_direction: FlexDirection::Column,
+                row_gap: Val::Px(4.0),
+                align_items: AlignItems::FlexEnd,
+                ..default()
+            },
+            ..default()
+        },
+    ));
 }
 
 #[allow(clippy::type_complexity)]
@@ -1319,6 +1433,220 @@ fn toggle_pause_in_game(keys: Res<ButtonInput<KeyCode>>, mut next: ResMut<NextSt
     if keys.just_pressed(KeyCode::Escape) {
         next.set(GameState::Paused);
     }
+}
+
+// ====================================================== Toasts ===
+
+const TOAST_DURATION: f32 = 2.5;
+
+fn spawn_toast(
+    commands: &mut Commands,
+    container: Entity,
+    font: &UiFont,
+    text: &str,
+    style: ToastStyle,
+) {
+    let (bg, border, text_color) = match style {
+        ToastStyle::Pickup => (CREAM, GOLD, WOOD_DARKEST),
+        ToastStyle::Papyrus => (PAPYRUS, WOOD_DARKEST, WOOD_DARKEST),
+    };
+    commands.entity(container).with_children(|p| {
+        p.spawn((
+            Toast {
+                remaining: TOAST_DURATION,
+                initial: TOAST_DURATION,
+            },
+            NodeBundle {
+                style: Style {
+                    padding: UiRect::axes(Val::Px(14.0), Val::Px(8.0)),
+                    border: UiRect::all(Val::Px(2.0)),
+                    ..default()
+                },
+                background_color: bg.into(),
+                border_color: border.into(),
+                ..default()
+            },
+        ))
+        .with_children(|p| {
+            p.spawn(TextBundle::from_section(
+                text,
+                TextStyle {
+                    font: font.display.clone(),
+                    font_size: 18.0,
+                    color: text_color,
+                },
+            ));
+        });
+    });
+}
+
+#[derive(Clone, Copy)]
+enum ToastStyle {
+    /// N2 — Filled accent (pickup d'item)
+    Pickup,
+    /// N3 — Papyrus bois (checkpoint, record)
+    Papyrus,
+}
+
+fn spawn_pickup_toasts(
+    mut commands: Commands,
+    mut events: EventReader<ItemPickedUp>,
+    container: Query<Entity, With<ToastsContainer>>,
+    font: Res<UiFont>,
+) {
+    let Ok(container) = container.get_single() else {
+        return;
+    };
+    let font = font.into_inner();
+    for ev in events.read() {
+        let text = match ev.kind {
+            ItemKind::AirJumpCrystal => "💎 + Cristal cyan",
+            ItemKind::AmberPetal => "🟠 Petale d'ambre",
+            ItemKind::WhiteFeather => "🪶 Plume",
+            ItemKind::Hourglass => "⏳ Sablier",
+        };
+        spawn_toast(&mut commands, container, font, text, ToastStyle::Pickup);
+    }
+}
+
+fn spawn_checkpoint_toast(
+    mut commands: Commands,
+    mut events: EventReader<CheckpointReached>,
+    container: Query<Entity, With<ToastsContainer>>,
+    font: Res<UiFont>,
+) {
+    let Ok(container) = container.get_single() else {
+        return;
+    };
+    let font = font.into_inner();
+    for _ in events.read() {
+        spawn_toast(&mut commands, container, font, "Checkpoint atteint", ToastStyle::Papyrus);
+    }
+}
+
+fn tick_toasts(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut q: Query<(Entity, &mut Toast, &mut BackgroundColor, &mut BorderColor)>,
+) {
+    let dt = time.delta_seconds();
+    for (entity, mut toast, mut bg, mut border) in &mut q {
+        toast.remaining -= dt;
+        if toast.remaining <= 0.0 {
+            commands.entity(entity).despawn_recursive();
+            continue;
+        }
+        // Fade out sur les derniers 0.5 s
+        let alpha = (toast.remaining / 0.5).min(1.0);
+        let c = bg.0.to_srgba();
+        bg.0 = Color::srgba(c.red, c.green, c.blue, alpha);
+        let c = border.0.to_srgba();
+        border.0 = Color::srgba(c.red, c.green, c.blue, alpha);
+    }
+}
+
+// ===================================================== Inventaire ===
+
+fn update_inventory_hud(
+    inventory: Res<Inventory>,
+    mut slots: Query<(&InventorySlot, &Children, &mut BackgroundColor, &mut BorderColor)>,
+    mut texts: Query<&mut Text>,
+) {
+    for (slot, children, mut bg, mut border) in &mut slots {
+        let kind = inventory.slots[slot.0];
+        let is_selected = inventory.selected == slot.0;
+
+        if is_selected {
+            *bg = PAPYRUS.into();
+            *border = GOLD.into();
+        } else if kind.is_some() {
+            *bg = WOOD_LIGHT.into();
+            *border = WOOD_DARK.into();
+        } else {
+            *bg = Color::srgba(0.42, 0.23, 0.09, 0.5).into();
+            *border = WOOD_DARKEST.into();
+        }
+
+        for child in children {
+            if let Ok(mut text) = texts.get_mut(*child) {
+                text.sections[0].value = match kind {
+                    Some(crate::throwables::ThrowableKind::Bomb) => "B".into(),
+                    Some(crate::throwables::ThrowableKind::IceBlock) => "G".into(),
+                    Some(crate::throwables::ThrowableKind::MagicPlatform) => "P".into(),
+                    None => "".into(),
+                };
+            }
+        }
+    }
+}
+
+// ====================================================== Effets actifs ===
+
+fn update_effects_hud(
+    mut commands: Commands,
+    effects: Res<ActiveEffects>,
+    container: Query<Entity, With<EffectsContainer>>,
+    children: Query<&Children, With<EffectsContainer>>,
+    font: Res<UiFont>,
+) {
+    let Ok(container) = container.get_single() else {
+        return;
+    };
+    // Despawn tous les anciens enfants
+    if let Ok(children) = children.get_single() {
+        for child in children.iter() {
+            commands.entity(*child).despawn_recursive();
+        }
+    }
+    let font = font.into_inner();
+
+    let mut effects_list: Vec<(&str, f32, Color)> = vec![];
+    if effects.invincible > 0.0 {
+        effects_list.push(("Invincible", effects.invincible / 3.0, GOLD));
+    }
+    if effects.jump_boost > 0.0 {
+        effects_list.push(("Saut+", effects.jump_boost / 5.0, CREAM));
+    }
+    if effects.time_slow > 0.0 {
+        effects_list.push(("Lent", effects.time_slow / 4.0, PAPYRUS));
+    }
+
+    commands.entity(container).with_children(|p| {
+        for (label, t, color) in effects_list {
+            p.spawn(NodeBundle {
+                style: Style {
+                    flex_direction: FlexDirection::Column,
+                    row_gap: Val::Px(2.0),
+                    width: Val::Px(120.0),
+                    padding: UiRect::all(Val::Px(4.0)),
+                    border: UiRect::all(Val::Px(1.0)),
+                    ..default()
+                },
+                background_color: Color::srgba(0.29, 0.18, 0.10, 0.7).into(),
+                border_color: WOOD_DARK.into(),
+                ..default()
+            })
+            .with_children(|p| {
+                p.spawn(TextBundle::from_section(
+                    label,
+                    TextStyle {
+                        font: font.display.clone(),
+                        font_size: 14.0,
+                        color,
+                    },
+                ));
+                p.spawn(NodeBundle {
+                    style: Style {
+                        width: Val::Percent(100.0 * t.clamp(0.0, 1.0)),
+                        height: Val::Px(3.0),
+                        ..default()
+                    },
+                    background_color: color.into(),
+                    ..default()
+                });
+            });
+        }
+    });
 }
 
 
