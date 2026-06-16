@@ -19,6 +19,8 @@ pub enum EnemyKind {
     Flyer,
     /// Statique, tire un projectile toutes les ~2 s vers le joueur.
     Spitter,
+    /// Patrouille, charge sur le joueur s'il est dans range.
+    Charger,
 }
 
 impl EnemyKind {
@@ -27,6 +29,7 @@ impl EnemyKind {
             EnemyKind::Crawler => "sprites/enemy_crawler.png",
             EnemyKind::Flyer => "sprites/enemy_flyer.png",
             EnemyKind::Spitter => "sprites/enemy_spitter.png",
+            EnemyKind::Charger => "sprites/enemy_charger.png",
         }
     }
 
@@ -35,6 +38,7 @@ impl EnemyKind {
             EnemyKind::Crawler => Vec2::new(20.0, 14.0),
             EnemyKind::Flyer => Vec2::new(18.0, 18.0),
             EnemyKind::Spitter => Vec2::new(24.0, 20.0),
+            EnemyKind::Charger => Vec2::new(22.0, 18.0),
         }
     }
 }
@@ -69,6 +73,7 @@ impl Plugin for EnemiesPlugin {
                 ai_crawler,
                 ai_flyer,
                 ai_spitter,
+                ai_charger,
                 tick_enemy_projectiles,
                 check_stomp_or_damage,
                 apply_attack_hits,
@@ -94,6 +99,7 @@ fn spawn_enemies(mut commands: Commands, asset_server: Res<AssetServer>) {
     spawn_enemy(&mut commands, &asset_server, EnemyKind::Flyer, Vec2::new(1500.0, 320.0), 1300.0..1900.0);
     spawn_enemy(&mut commands, &asset_server, EnemyKind::Spitter, Vec2::new(880.0, 60.0), 0.0..0.0);
     spawn_enemy(&mut commands, &asset_server, EnemyKind::Spitter, Vec2::new(1080.0, 360.0), 0.0..0.0);
+    spawn_enemy(&mut commands, &asset_server, EnemyKind::Charger, Vec2::new(1500.0, -258.0), 1200.0..1800.0);
 }
 
 fn spawn_enemy(
@@ -108,6 +114,7 @@ fn spawn_enemy(
         EnemyKind::Crawler => 2,
         EnemyKind::Flyer => 1,
         EnemyKind::Spitter => 3,
+        EnemyKind::Charger => 3,
     };
     commands.spawn((
         Enemy {
@@ -364,6 +371,42 @@ fn tick_enemy_projectiles(
             hit.send(PlayerHit { damage: 1 });
             commands.entity(entity).despawn();
         }
+    }
+}
+
+/// Charger : patrouille comme un crawler, mais accélère brutalement
+/// quand le joueur est dans une fenêtre de 160 px horizontale et à la
+/// même altitude approximative.
+fn ai_charger(
+    time: Res<Time>,
+    mut q: Query<(&mut Enemy, &mut Transform, &mut Sprite), Without<Player>>,
+    player: Query<&Transform, With<Player>>,
+) {
+    let dt = time.delta_seconds();
+    let Ok(player_t) = player.get_single() else {
+        return;
+    };
+    for (mut e, mut t, mut sprite) in &mut q {
+        if e.kind != EnemyKind::Charger {
+            continue;
+        }
+        let dx = player_t.translation.x - t.translation.x;
+        let dy = (player_t.translation.y - t.translation.y).abs();
+        let in_range = dx.abs() < 240.0 && dy < 80.0;
+        let speed = if in_range { 240.0 } else { 90.0 };
+
+        if in_range {
+            e.direction = dx.signum();
+        }
+        t.translation.x += e.direction * speed * dt;
+        if t.translation.x <= e.patrol_min_x {
+            t.translation.x = e.patrol_min_x;
+            e.direction = 1.0;
+        } else if t.translation.x >= e.patrol_max_x {
+            t.translation.x = e.patrol_max_x;
+            e.direction = -1.0;
+        }
+        sprite.flip_x = e.direction < 0.0;
     }
 }
 

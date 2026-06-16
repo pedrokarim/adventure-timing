@@ -33,6 +33,54 @@ contre un mur, puis trois piliers étroits avant le drapeau rose.
 - Le **drapeau rose** termine le niveau et affiche le temps + le nombre
   de morts.
 
+## Build pour distribution
+
+### Linux (build local optimisé)
+
+```bash
+cargo build --release        # binaire dans target/release/adventure_timing
+# ou plus rapide pour itérer :
+cargo build --profile release-fast
+```
+
+Le binaire est statique pour son code, mais a besoin des `assets/` à
+côté (chemin relatif `./assets/`). Pour redistribuer : zip le binaire +
+le dossier `assets/`.
+
+### Windows / macOS via `cross`
+
+```bash
+# Install cross une fois
+cargo install cross --git https://github.com/cross-rs/cross
+# Build
+cross build --release --target x86_64-pc-windows-gnu
+cross build --release --target x86_64-apple-darwin
+```
+
+### WASM (itch.io / page web)
+
+```bash
+rustup target add wasm32-unknown-unknown
+cargo install -f wasm-bindgen-cli
+cargo build --release --target wasm32-unknown-unknown
+wasm-bindgen --no-typescript --target web \
+    --out-dir wasm \
+    --out-name "adventure_timing" \
+    target/wasm32-unknown-unknown/release/adventure_timing.wasm
+# Servir le dossier wasm/ + assets/ avec un script index.html
+```
+
+À noter : Bevy en WASM nécessite `bevy = { ..., default-features = false }`
+et désactiver `dynamic_linking`. Le bundle WASM final pèse ~20-30 Mo
+(Bevy n'est pas tree-shake-friendly).
+
+### Profils Cargo
+
+- `release` : LTO fat + strip + panic=abort. Binaire minimal mais build
+  lent (~3-5 min).
+- `release-fast` : LTO thin sans strip. Pour itérer sur les builds
+  release (~1-2 min).
+
 ## Direction artistique
 
 Palette **nuit mystique** inspirée du travail de Camille Unknown

@@ -1504,6 +1504,8 @@ fn spawn_pickup_toasts(
             ItemKind::AmberPetal => "🟠 Petale d'ambre",
             ItemKind::WhiteFeather => "🪶 Plume",
             ItemKind::Hourglass => "⏳ Sablier",
+            ItemKind::Heart => "❤ + 1 PV",
+            ItemKind::MemoryPetal => "🌸 Petale memoire",
         };
         spawn_toast(&mut commands, container, font, text, ToastStyle::Pickup);
     }

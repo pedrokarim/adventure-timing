@@ -60,5 +60,15 @@ opt-level = 3
 opt-level = 1
 
 [profile.release]
-lto = "thin"
+lto = "fat"
 codegen-units = 1
+strip = true
+opt-level = 3
+panic = "abort"
+
+# Profil intermédiaire : release sans LTO complet pour itérer plus vite
+# sur les builds de test (avant de cross-compile pour distribution).
+[profile.release-fast]
+inherits = "release"
+lto = "thin"
+strip = "debuginfo"

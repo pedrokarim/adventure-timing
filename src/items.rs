@@ -3,7 +3,7 @@
 //! `ActiveEffects`, consultés par les autres modules (player, level).
 
 use crate::physics::Collider;
-use crate::player::{Player, PlayerController};
+use crate::player::{Player, PlayerController, PlayerHp};
 use crate::states::GameState;
 use bevy::prelude::*;
 
@@ -17,6 +17,10 @@ pub enum ItemKind {
     WhiteFeather,
     /// Slowmo : monde tourne à 50 % pendant 4 s
     Hourglass,
+    /// Restaure 1 PV au joueur
+    Heart,
+    /// La prochaine mort sera ignorée (consommable persistant)
+    MemoryPetal,
 }
 
 impl ItemKind {
@@ -26,6 +30,8 @@ impl ItemKind {
             ItemKind::AmberPetal => "sprites/item_petal.png",
             ItemKind::WhiteFeather => "sprites/item_feather.png",
             ItemKind::Hourglass => "sprites/item_hourglass.png",
+            ItemKind::Heart => "sprites/item_heart.png",
+            ItemKind::MemoryPetal => "sprites/item_memory.png",
         }
     }
 
@@ -35,6 +41,8 @@ impl ItemKind {
             ItemKind::AmberPetal => "Petale d'ambre",
             ItemKind::WhiteFeather => "Plume",
             ItemKind::Hourglass => "Sablier",
+            ItemKind::Heart => "Coeur",
+            ItemKind::MemoryPetal => "Petale memoire",
         }
     }
 }
@@ -53,6 +61,10 @@ pub struct ActiveEffects {
     pub invincible: f32,
     pub jump_boost: f32,
     pub time_slow: f32,
+    /// Si true, la prochaine PlayerDied sera annulée (HP restauré).
+    /// Le système de death qui consomme l'événement doit aussi consommer
+    /// ce flag.
+    pub skip_next_death: bool,
 }
 
 #[derive(Event, Debug)]
@@ -108,11 +120,12 @@ pub fn spawn_item(
 }
 
 fn spawn_items(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // Distribués le long du niveau de test pour les tester.
     spawn_item(&mut commands, &asset_server, ItemKind::AirJumpCrystal, Vec2::new(-180.0, -200.0));
     spawn_item(&mut commands, &asset_server, ItemKind::AmberPetal, Vec2::new(50.0, -120.0));
     spawn_item(&mut commands, &asset_server, ItemKind::WhiteFeather, Vec2::new(280.0, -38.0));
     spawn_item(&mut commands, &asset_server, ItemKind::Hourglass, Vec2::new(1080.0, 360.0));
+    spawn_item(&mut commands, &asset_server, ItemKind::Heart, Vec2::new(640.0, -80.0));
+    spawn_item(&mut commands, &asset_server, ItemKind::MemoryPetal, Vec2::new(1800.0, 280.0));
 }
 
 fn animate_items(time: Res<Time>, mut q: Query<(&mut Item, &mut Transform)>) {
@@ -134,11 +147,14 @@ fn aabb_overlap(a_pos: Vec3, a_size: Vec2, b_pos: Vec3, b_size: Vec2) -> bool {
 fn check_pickup(
     mut commands: Commands,
     items: Query<(Entity, &Transform, &Collider, &Item), Without<Player>>,
-    mut player_q: Query<(&Transform, &Collider, &mut PlayerController), With<Player>>,
+    mut player_q: Query<
+        (&Transform, &Collider, &mut PlayerController, &mut PlayerHp),
+        With<Player>,
+    >,
     mut events: EventWriter<ItemPickedUp>,
     mut active: ResMut<ActiveEffects>,
 ) {
-    let Ok((p_t, p_c, mut ctrl)) = player_q.get_single_mut() else {
+    let Ok((p_t, p_c, mut ctrl, mut hp)) = player_q.get_single_mut() else {
         return;
     };
     for (entity, t, c, item) in &items {
@@ -150,6 +166,12 @@ fn check_pickup(
                 ItemKind::AmberPetal => active.invincible = 3.0,
                 ItemKind::WhiteFeather => active.jump_boost = 5.0,
                 ItemKind::Hourglass => active.time_slow = 4.0,
+                ItemKind::Heart => {
+                    hp.current = (hp.current + 1).min(hp.max);
+                }
+                ItemKind::MemoryPetal => {
+                    active.skip_next_death = true;
+                }
             }
             events.send(ItemPickedUp { kind: item.kind });
             commands.entity(entity).despawn();

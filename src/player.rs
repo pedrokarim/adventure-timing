@@ -235,6 +235,15 @@ fn handle_death(
         return;
     };
 
+    // Pétale mémoire : ignore cette mort
+    if effects.skip_next_death {
+        effects.skip_next_death = false;
+        hp.current = hp.max;
+        hp.hit_invuln = 1.0; // grace period
+        effects.invincible = effects.invincible.max(1.0);
+        return;
+    }
+
     transform.translation = respawn.0.extend(transform.translation.z);
     velocity.0 = Vec2::ZERO;
     *ctrl = PlayerController::default();
@@ -243,7 +252,6 @@ fn handle_death(
     stats.deaths += 1;
     shake.add(0.65);
 
-    // Le Gardien a une fenêtre d'invincibilité après chaque mort.
     let respawn_invuln = selected_hero.0.respawn_invincibility();
     if respawn_invuln > 0.0 {
         effects.invincible = effects.invincible.max(respawn_invuln);

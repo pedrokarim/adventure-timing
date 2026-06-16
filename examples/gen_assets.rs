@@ -1153,6 +1153,53 @@ fn make_items() {
     }
     save(&feather, "assets/sprites/item_feather.png");
 
+    // Cœur 16x16 (icône d'item, gros)
+    let mut heart = RgbaImage::from_pixel(16, 16, TR);
+    let heart_red = Rgba([232, 56, 72, 255]);
+    let heart_dk = Rgba([148, 28, 36, 255]);
+    let heart_lt = Rgba([252, 132, 140, 255]);
+    // Forme cœur (lobes + pointe)
+    rect(&mut heart, 2, 3, 5, 5, heart_red);
+    rect(&mut heart, 9, 3, 5, 5, heart_red);
+    rect(&mut heart, 3, 8, 10, 2, heart_red);
+    rect(&mut heart, 4, 10, 8, 1, heart_red);
+    rect(&mut heart, 5, 11, 6, 1, heart_red);
+    rect(&mut heart, 6, 12, 4, 1, heart_red);
+    rect(&mut heart, 7, 13, 2, 1, heart_red);
+    // Outline
+    rect(&mut heart, 1, 4, 1, 4, heart_dk);
+    rect(&mut heart, 14, 4, 1, 4, heart_dk);
+    rect(&mut heart, 2, 2, 5, 1, heart_dk);
+    rect(&mut heart, 9, 2, 5, 1, heart_dk);
+    // Highlight
+    put(&mut heart, 4, 4, heart_lt);
+    put(&mut heart, 5, 4, heart_lt);
+    put(&mut heart, 4, 5, heart_lt);
+    save(&heart, "assets/sprites/item_heart.png");
+
+    // Pétale mémoire 16x16 — pétale violet/rose flottante
+    let mut mem = RgbaImage::from_pixel(16, 16, TR);
+    let petal_lt = Rgba([232, 140, 220, 255]);
+    let petal_mid = Rgba([180, 92, 168, 255]);
+    let petal_dk = Rgba([108, 48, 100, 255]);
+    // Pétale en goutte
+    for row in 0..12 {
+        let t = row as f32 / 12.0;
+        let half = ((1.0 - (t - 0.5).abs() * 1.4) * 6.0) as i32;
+        if half > 0 {
+            let y = 2 + row;
+            rect(&mut mem, 8 - half, y, half * 2, 1, petal_mid);
+        }
+    }
+    put(&mut mem, 7, 5, petal_lt);
+    put(&mut mem, 8, 5, petal_lt);
+    put(&mut mem, 7, 13, petal_dk);
+    put(&mut mem, 8, 13, petal_dk);
+    // Petite étoile au centre (mémoire / résurrection)
+    put(&mut mem, 7, 8, HAIR);
+    put(&mut mem, 8, 8, HAIR);
+    save(&mem, "assets/sprites/item_memory.png");
+
     // Sablier : deux triangles connectés
     let mut hourglass = RgbaImage::from_pixel(16, 16, TR);
     // Cadres
@@ -1557,6 +1604,39 @@ fn make_forest_parallax() {
 
 // ========================================================= Enemies ===
 
+fn make_charger() {
+    // 22x18 : boule cornue, taureau miniature qui fonce
+    let mut img = RgbaImage::from_pixel(22, 18, TR);
+    // Corps rond
+    for row in 0..12 {
+        let half = match row {
+            0 | 11 => 4,
+            1 | 10 => 6,
+            2 | 9 => 7,
+            _ => 8,
+        };
+        let y = 3 + row;
+        rect(&mut img, 11 - half, y, half * 2, 1, Rgba([84, 42, 32, 255]));
+    }
+    // Highlights
+    hline(&mut img, 6, 4, 10, Rgba([130, 70, 56, 255]));
+    // Cornes
+    rect(&mut img, 3, 1, 2, 4, Rgba([196, 188, 174, 255]));
+    rect(&mut img, 17, 1, 2, 4, Rgba([196, 188, 174, 255]));
+    put(&mut img, 4, 0, Rgba([220, 212, 200, 255]));
+    put(&mut img, 17, 0, Rgba([220, 212, 200, 255]));
+    // Yeux rouges
+    put(&mut img, 7, 7, Rgba([232, 48, 48, 255]));
+    put(&mut img, 14, 7, Rgba([232, 48, 48, 255]));
+    // Naseaux
+    put(&mut img, 10, 11, EYE);
+    put(&mut img, 11, 11, EYE);
+    // Pattes
+    rect(&mut img, 4, 15, 4, 3, Rgba([42, 18, 14, 255]));
+    rect(&mut img, 14, 15, 4, 3, Rgba([42, 18, 14, 255]));
+    save(&img, "assets/sprites/enemy_charger.png");
+}
+
 fn make_spitter_and_projectile() {
     // Spitter 24x20 : champignon trapu avec bouche au centre
     let mut img = RgbaImage::from_pixel(24, 20, TR);
@@ -1749,6 +1829,7 @@ fn main() {
     make_projectile_magic();
     make_enemies();
     make_spitter_and_projectile();
+    make_charger();
     make_forest_tiles();
     make_forest_parallax();
     for palette in [&PALETTE_AMBER, &PALETTE_SANCTUARY, &PALETTE_DAWN] {
