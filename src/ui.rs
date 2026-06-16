@@ -21,7 +21,7 @@ use bevy::window::{PrimaryWindow, WindowMode};
 
 // ============================================================ Style ===
 
-const OVERLAY_BG: Color = Color::srgba(0.04, 0.06, 0.10, 0.88);
+const OVERLAY_BG: Color = Color::srgba(0.04, 0.06, 0.10, 0.55);
 const TITLE_COLOR: Color = Color::srgb(0.92, 0.94, 1.00);
 const SUBTITLE_COLOR: Color = Color::srgb(0.66, 0.74, 0.86);
 const HINT_COLOR: Color = Color::srgb(0.48, 0.56, 0.68);
@@ -351,13 +351,63 @@ fn spawn_main_menu(
     mut selection: ResMut<MenuSelection>,
     save: Res<SaveData>,
     font: Res<UiFont>,
+    asset_server: Res<AssetServer>,
 ) {
     begin_screen(&mut counter, &mut selection);
-    let root = spawn_overlay(&mut commands);
     let font = font.into_inner();
+
+    // Conteneur racine plein écran : pas de couleur de fond, on va y
+    // empiler l'image et l'overlay de texte.
+    let root = commands
+        .spawn((
+            ScreenTag,
+            NodeBundle {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    width: Val::Percent(100.0),
+                    height: Val::Percent(100.0),
+                    ..default()
+                },
+                ..default()
+            },
+        ))
+        .id();
+
     commands.entity(root).with_children(|p| {
-        spawn_title(p, font, "Adventure Timing");
-        spawn_subtitle(p, font, "Une nuit sans étoiles à traverser");
+        // Background : la scène rose à la Camille (camille-unknown-home).
+        p.spawn(ImageBundle {
+            style: Style {
+                position_type: PositionType::Absolute,
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                top: Val::Px(0.0),
+                left: Val::Px(0.0),
+                ..default()
+            },
+            image: UiImage::new(asset_server.load("sprites/menu_background.png")),
+            ..default()
+        });
+
+        // Overlay très léger juste pour assurer la lisibilité du texte
+        // par-dessus le fond rose saturé.
+        p.spawn(NodeBundle {
+            style: Style {
+                position_type: PositionType::Absolute,
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                row_gap: Val::Px(28.0),
+                padding: UiRect::all(Val::Px(40.0)),
+                ..default()
+            },
+            background_color: Color::srgba(0.10, 0.04, 0.12, 0.25).into(),
+            ..default()
+        })
+        .with_children(|p| {
+            spawn_title(p, font, "Adventure Timing");
+            spawn_subtitle(p, font, "Une nuit sans étoiles à traverser");
 
         if save.runs_completed > 0 {
             let best_time = save
@@ -407,7 +457,8 @@ fn spawn_main_menu(
             16.0,
             HINT_COLOR,
         );
-    });
+        }); // ferme le with_children de l'overlay
+    }); // ferme le with_children du root
 }
 
 // ======================================================= Settings ===

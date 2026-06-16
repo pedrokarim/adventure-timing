@@ -3348,6 +3348,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d1fceb9d127d515af1586d8d0cc601e1245bdb0af38e75c865a156290184f5b3"
 dependencies = [
  "cpal",
+ "hound",
  "lewton",
  "thiserror 1.0.69",
 ]

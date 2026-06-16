@@ -611,6 +611,223 @@ fn make_parallax_mid() {
     save(&img, "assets/sprites/parallax_mid.png");
 }
 
+fn make_menu_background() {
+    // 1280x720 : reproduction du vibe de "camille-unknown-home".
+    // - Ciel rose en gradient
+    // - Deux gros amas de nuages roses pâles (gauche + droite)
+    // - Trois monolithes verticaux suspendus dans le ciel, semi-transparents
+    // - Anneau lumineux (soleil/lune) au centre
+    // - Trois couches de montagnes en dégradé de roses
+    // - Colline sombre en bas à gauche avec un mini-perso + compagnon
+    // - Pylône à droite avec fils tombant
+    // - Pétales éparses concentrées au centre
+    let w = 1280u32;
+    let h = 720u32;
+    let mut img = RgbaImage::new(w, h);
+
+    // ===== Couleurs =====
+    let sky_top = (246.0, 188.0, 198.0);
+    let sky_bot = (228.0, 130.0, 156.0);
+    let cloud_lt = Rgba([252, 218, 218, 255]);
+    let cloud_mid = Rgba([248, 198, 200, 255]);
+    let cloud_edge = Rgba([240, 174, 188, 255]);
+    let mountain_far = Rgba([222, 130, 144, 255]);
+    let mountain_mid = Rgba([196, 100, 122, 255]);
+    let mountain_near = Rgba([158, 74, 98, 255]);
+    let ground_dark = Rgba([88, 36, 60, 255]);
+    let ground_light = Rgba([110, 50, 76, 255]);
+    let silhouette = Rgba([38, 14, 30, 255]);
+    let monolith = Rgba([214, 124, 144, 230]);
+    let monolith_edge = Rgba([192, 92, 122, 230]);
+    let ring = Rgba([252, 220, 210, 255]);
+
+    // ===== Ciel gradient =====
+    for y in 0..h {
+        let t = y as f32 / h as f32;
+        let r = sky_top.0 * (1.0 - t) + sky_bot.0 * t;
+        let g = sky_top.1 * (1.0 - t) + sky_bot.1 * t;
+        let b = sky_top.2 * (1.0 - t) + sky_bot.2 * t;
+        for x in 0..w {
+            img.put_pixel(x, y, Rgba([r as u8, g as u8, b as u8, 255]));
+        }
+    }
+
+    // ===== Monolithes flottants (3, suspendus depuis le haut, fade vers le bas) =====
+    let monoliths = [
+        (430i32, 0i32, 36i32, 430i32),
+        (720, 0, 50, 520),
+        (1080, 0, 26, 380),
+    ];
+    for (x, y_top, mw, mh) in monoliths {
+        // Corps principal avec fade alpha vers le bas
+        for row in 0..mh {
+            let t = row as f32 / mh as f32;
+            let alpha = ((1.0 - t * t) * 230.0) as u8;
+            let c = Rgba([monolith.0[0], monolith.0[1], monolith.0[2], alpha]);
+            rect(&mut img, x, y_top + row, mw, 1, c);
+        }
+        // Edge sombre à droite
+        for row in 0..mh {
+            let t = row as f32 / mh as f32;
+            let alpha = ((1.0 - t * t) * 230.0) as u8;
+            let c = Rgba([
+                monolith_edge.0[0],
+                monolith_edge.0[1],
+                monolith_edge.0[2],
+                alpha,
+            ]);
+            put(&mut img, x + mw - 1, y_top + row, c);
+            put(&mut img, x + mw - 2, y_top + row, c);
+        }
+    }
+
+    // ===== Anneau lumineux au centre (juste un cercle outline) =====
+    let ring_cx = 640i32;
+    let ring_cy = 240i32;
+    let ring_r = 22i32;
+    for theta_i in 0..240 {
+        let theta = theta_i as f32 / 240.0 * std::f32::consts::TAU;
+        let x = ring_cx + (theta.cos() * ring_r as f32) as i32;
+        let y = ring_cy + (theta.sin() * ring_r as f32) as i32;
+        put(&mut img, x, y, ring);
+        put(&mut img, x + 1, y, ring);
+    }
+
+    // ===== Nuages : deux masses puffies (gauche + droite) =====
+    // Approche : on dessine plein de cercles flous superposés
+    let draw_cloud = |img: &mut RgbaImage, cx: i32, cy: i32, max_r: i32, color: Rgba<u8>| {
+        for blob_i in 0..12 {
+            let blob_angle = (blob_i as f32) * 0.52;
+            let dist = ((blob_i as f32) * 0.7).sin().abs() * (max_r as f32 * 0.7);
+            let bx = cx + (blob_angle.cos() * dist) as i32;
+            let by = cy + (blob_angle.sin() * dist * 0.4) as i32;
+            let br = (max_r as f32 * (0.55 + (blob_i as f32 * 0.31).sin().abs() * 0.45)) as i32;
+            for dy in -br..=br {
+                for dx in -br..=br {
+                    if dx * dx + dy * dy <= br * br {
+                        put(img, bx + dx, by + dy, color);
+                    }
+                }
+            }
+        }
+    };
+
+    // Nuage gauche
+    draw_cloud(&mut img, 240, 320, 130, cloud_lt);
+    draw_cloud(&mut img, 180, 380, 110, cloud_mid);
+    draw_cloud(&mut img, 80, 360, 90, cloud_edge);
+    // Nuage droite
+    draw_cloud(&mut img, 1050, 340, 140, cloud_lt);
+    draw_cloud(&mut img, 1150, 410, 100, cloud_mid);
+    draw_cloud(&mut img, 980, 280, 80, cloud_edge);
+    // Nuage central bas (camoufle un peu les monolithes)
+    draw_cloud(&mut img, 720, 460, 130, cloud_mid);
+    draw_cloud(&mut img, 600, 480, 100, cloud_edge);
+
+    // ===== Couches de montagnes =====
+    let mut fill_mountain = |img: &mut RgbaImage, peaks: &[(i32, i32)], color: Rgba<u8>| {
+        for w in peaks.windows(2) {
+            let (x0, y0) = w[0];
+            let (x1, y1) = w[1];
+            let dx = x1 - x0;
+            if dx <= 0 {
+                continue;
+            }
+            for px in 0..dx {
+                let t = px as f32 / dx as f32;
+                let y_top = (y0 as f32 * (1.0 - t) + y1 as f32 * t) as i32;
+                rect(img, x0 + px, y_top, 1, 720 - y_top, color);
+            }
+        }
+    };
+
+    let far_peaks = [
+        (0i32, 510i32), (140, 490), (280, 520), (420, 485),
+        (560, 510), (700, 478), (840, 505), (980, 485),
+        (1120, 510), (1280, 495),
+    ];
+    fill_mountain(&mut img, &far_peaks, mountain_far);
+
+    let mid_peaks = [
+        (0i32, 555i32), (130, 520), (260, 555), (400, 515),
+        (540, 545), (680, 510), (820, 540), (960, 520),
+        (1100, 555), (1280, 530),
+    ];
+    fill_mountain(&mut img, &mid_peaks, mountain_mid);
+
+    let near_peaks = [
+        (0i32, 605i32), (110, 580), (230, 615), (360, 575),
+        (500, 605), (640, 580), (780, 615), (920, 590),
+        (1060, 615), (1200, 585), (1280, 605),
+    ];
+    fill_mountain(&mut img, &near_peaks, mountain_near);
+
+    // ===== Sol foncé tout en bas =====
+    rect(&mut img, 0, 645, 1280, 75, ground_dark);
+    // Touffes d'herbe en silhouette
+    for x in (0..1280).step_by(2) {
+        let height = ((x as f32 * 0.09).sin().abs() * 3.0 + 1.0) as i32;
+        rect(&mut img, x, 645 - height, 1, height, ground_light);
+    }
+
+    // ===== Colline en silhouette à gauche (sur laquelle est le perso) =====
+    // Une bosse douce qui monte de y=645 jusqu'à y~610
+    for x in 0..420 {
+        let t = x as f32 / 420.0;
+        let bump = (1.0 - (t - 0.5).abs() * 1.6).max(0.0);
+        let y_top = 645 - (bump * 38.0) as i32;
+        rect(&mut img, x, y_top, 1, 720 - y_top, ground_dark);
+        // Brins d'herbe sur le dessus
+        let blade_h = ((x as f32 * 0.21).sin().abs() * 4.0 + 1.0) as i32;
+        rect(&mut img, x, y_top - blade_h, 1, blade_h, ground_light);
+    }
+
+    // ===== Mini-personnage encapuchonné + compagnon =====
+    // Position : sommet de la colline
+    let hill_top_x = 210;
+    let hill_top_y = 618;
+    // Perso (silhouette compacte)
+    rect(&mut img, hill_top_x, hill_top_y - 11, 5, 11, silhouette);
+    rect(&mut img, hill_top_x + 1, hill_top_y - 13, 3, 2, silhouette);
+    // Compagnon (chat/chien à droite, plus petit)
+    rect(&mut img, hill_top_x + 8, hill_top_y - 4, 6, 4, silhouette);
+    rect(&mut img, hill_top_x + 13, hill_top_y - 5, 2, 1, silhouette);
+    rect(&mut img, hill_top_x + 8, hill_top_y - 5, 2, 2, silhouette);
+
+    // ===== Pylône / antenne à droite =====
+    let post_x = 1140;
+    rect(&mut img, post_x, 530, 3, 115, silhouette);
+    // Bras horizontaux
+    rect(&mut img, post_x - 6, 542, 16, 2, silhouette);
+    rect(&mut img, post_x - 4, 552, 12, 2, silhouette);
+    // Fils qui descendent vers la gauche, hors-cadre
+    for x in 200..post_x {
+        let t = (x - 200) as f32 / (post_x - 200) as f32;
+        let sag = (t * std::f32::consts::PI).sin();
+        let y = 543 - (sag * 6.0) as i32 + ((1.0 - t) * 20.0) as i32;
+        put(&mut img, x, y, Rgba([38, 14, 30, 180]));
+    }
+
+    // ===== Pétales tombantes (concentrées au centre, comme l'image) =====
+    for i in 0..60 {
+        let phi = (i as f32) * 0.61803 * std::f32::consts::TAU;
+        let x = (640.0 + phi.cos() * 320.0 + ((i as f32 * 3.1).sin() * 80.0)) as i32;
+        let y = (440.0 + phi.sin() * 180.0 + ((i as f32 * 1.7).cos() * 40.0)) as i32;
+        let color = if i % 3 == 0 {
+            Rgba([200, 80, 110, 255])
+        } else if i % 3 == 1 {
+            Rgba([232, 120, 140, 255])
+        } else {
+            Rgba([252, 196, 200, 240])
+        };
+        // Pétale = 2 px côte à côte
+        put(&mut img, x, y, color);
+        put(&mut img, x + 1, y, color);
+    }
+
+    save(&img, "assets/sprites/menu_background.png");
+}
+
 fn make_parallax_front() {
     // 256x100 : forêt en silhouette avec arbres "puffy" type Camille.
     let mut img = RgbaImage::from_pixel(256, 100, TR);
@@ -662,5 +879,6 @@ fn main() {
     make_parallax_back();
     make_parallax_mid();
     make_parallax_front();
+    make_menu_background();
     println!("Assets générés dans assets/sprites/");
 }

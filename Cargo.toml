@@ -23,6 +23,7 @@ bevy = { version = "0.14", default-features = false, features = [
     "multi_threaded",
     "png",
     "vorbis",
+    "wav",
     "x11",
     "dynamic_linking",
 ] }
