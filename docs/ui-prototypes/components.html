@@ -1,0 +1,1026 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Adventure Timing — Composants UI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;700;900&family=Pixelify+Sans:wght@400;700&family=Press+Start+2P&family=VT323&family=Crimson+Pro:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Inter", sans-serif;
+    background: #0f1218;
+    color: #d8dde6;
+    padding: 32px;
+    min-height: 100vh;
+  }
+  h1.page-title {
+    text-align: center;
+    font-weight: 900;
+    font-size: 28px;
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+  }
+  p.page-sub {
+    text-align: center;
+    color: #888c95;
+    margin-bottom: 40px;
+    font-size: 14px;
+  }
+  section {
+    max-width: 1600px;
+    margin: 0 auto 56px;
+    padding: 24px;
+    background: #1a1d24;
+    border: 1px solid #2a2f38;
+    border-radius: 14px;
+  }
+  h2 {
+    font-size: 18px;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .section-sub {
+    color: #888c95;
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .variant {
+    background: #0f1218;
+    border: 1px solid #2a2f38;
+    border-radius: 10px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+    position: relative;
+  }
+  .variant-label {
+    position: absolute;
+    top: 8px;
+    left: 10px;
+    font-size: 10px;
+    color: #5e6571;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  /* dark canvas for components that need it */
+  .variant.dark-bg { background: #060810; }
+  .variant.pink-bg { background: linear-gradient(180deg, #d77a90, #6f2748); }
+  .variant.teal-bg { background: linear-gradient(180deg, #0a1418, #1a3038); }
+
+  /* ============================================================ */
+  /* BOUTONS                                                       */
+  /* ============================================================ */
+  .btn { cursor: pointer; font-family: inherit; transition: all 0.15s; }
+
+  /* B1 — Minimal text */
+  .btn-minimal {
+    background: transparent;
+    border: 0;
+    color: #c8d0dc;
+    font-size: 15px;
+    padding: 6px 12px;
+    letter-spacing: 1px;
+  }
+  .btn-minimal:hover { color: #80d0ff; }
+
+  /* B2 — Bordered ghost */
+  .btn-bordered {
+    background: transparent;
+    border: 1px solid #4a5566;
+    color: #c8d0dc;
+    font-size: 14px;
+    padding: 8px 20px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+  }
+  .btn-bordered:hover { border-color: #80d0ff; color: #fff; box-shadow: 0 0 12px rgba(128, 208, 255, 0.2); }
+
+  /* B3 — Filled solid */
+  .btn-filled {
+    background: linear-gradient(180deg, #2a4a6a, #1e3550);
+    border: 1px solid #5a8caa;
+    color: #fff;
+    font-size: 14px;
+    padding: 8px 22px;
+    border-radius: 6px;
+    font-weight: 700;
+  }
+  .btn-filled:hover { background: linear-gradient(180deg, #3a5a7a, #2e4560); box-shadow: 0 0 12px rgba(128, 208, 255, 0.4); }
+
+  /* B4 — Chunky bevel */
+  .btn-bevel {
+    background: #d8b97a;
+    border: 2px solid #6b3b18;
+    color: #4a2d1a;
+    font-weight: 800;
+    font-size: 14px;
+    padding: 8px 22px;
+    border-radius: 4px;
+    box-shadow: inset 0 1px 0 #fff8e0, inset 0 -3px 0 rgba(74, 45, 26, 0.4), 0 3px 0 #6b3b18;
+    text-shadow: 1px 1px 0 rgba(255, 248, 224, 0.7);
+  }
+  .btn-bevel:hover { transform: translateY(-1px); box-shadow: inset 0 1px 0 #fff8e0, inset 0 -3px 0 rgba(74, 45, 26, 0.4), 0 4px 0 #6b3b18; }
+  .btn-bevel:active { transform: translateY(2px); box-shadow: inset 0 1px 0 #fff8e0, inset 0 -3px 0 rgba(74, 45, 26, 0.4), 0 1px 0 #6b3b18; }
+
+  /* B5 — Arrow cursor */
+  .btn-arrow {
+    background: transparent;
+    border: 0;
+    color: #888;
+    font-family: "Press Start 2P", monospace;
+    font-size: 10px;
+    padding: 6px 6px 6px 20px;
+    letter-spacing: 2px;
+    position: relative;
+  }
+  .btn-arrow::before {
+    content: "▶";
+    position: absolute;
+    left: 4px;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .btn-arrow:hover { color: #fff; }
+  .btn-arrow:hover::before { opacity: 1; }
+
+  /* B6 — Neon glow */
+  .btn-neon {
+    background: rgba(255, 102, 204, 0.08);
+    border: 1px solid #ff66cc;
+    color: #ffe2f4;
+    font-family: "VT323", monospace;
+    font-size: 18px;
+    padding: 4px 22px;
+    letter-spacing: 3px;
+  }
+  .btn-neon:hover { background: rgba(255, 102, 204, 0.25); box-shadow: 0 0 18px #ff66cc, inset 0 0 8px rgba(255, 102, 204, 0.3); color: #fff; }
+
+  /* B7 — Glass / blurred */
+  .btn-glass {
+    background: rgba(30, 12, 24, 0.45);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 220, 230, 0.4);
+    color: #fff8f9;
+    font-family: "Pixelify Sans", sans-serif;
+    font-size: 16px;
+    padding: 7px 24px;
+    border-radius: 2px;
+  }
+  .btn-glass:hover { background: rgba(40, 16, 30, 0.7); border-color: #fff; box-shadow: 0 0 12px rgba(255, 220, 230, 0.5); }
+
+  /* B8 — Pill rounded */
+  .btn-pill {
+    background: #fff;
+    color: #5a4170;
+    border: 3px solid #2d1c3d;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 14px;
+    padding: 8px 24px;
+    box-shadow: 0 4px 0 #2d1c3d;
+  }
+  .btn-pill:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #2d1c3d; }
+  .btn-pill:active { transform: translateY(2px); box-shadow: 0 2px 0 #2d1c3d; }
+
+  /* ============================================================ */
+  /* TOGGLES                                                       */
+  /* ============================================================ */
+
+  /* T1 — Classic switch */
+  .toggle-switch {
+    width: 44px; height: 22px; border-radius: 11px;
+    background: #2a2f38; position: relative;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .toggle-switch::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 18px; height: 18px; border-radius: 9px; background: #888c95;
+    transition: all 0.2s;
+  }
+  .toggle-switch.on { background: #2a4a6a; }
+  .toggle-switch.on::after { left: 24px; background: #80d0ff; box-shadow: 0 0 8px rgba(128, 208, 255, 0.6); }
+
+  /* T2 — Pixel checkbox */
+  .toggle-pixel {
+    width: 22px; height: 22px;
+    border: 2px solid #c8d0dc;
+    background: #0f1218;
+    cursor: pointer; position: relative;
+  }
+  .toggle-pixel.on::after {
+    content: "✕"; position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #80d0ff; font-family: "Press Start 2P", monospace; font-size: 12px;
+  }
+
+  /* T3 — Segmented ON/OFF */
+  .toggle-segmented {
+    display: inline-flex;
+    border: 1px solid #4a5566; border-radius: 4px; overflow: hidden;
+    font-size: 12px;
+  }
+  .toggle-segmented > div {
+    padding: 6px 14px; cursor: pointer; color: #888c95;
+    font-family: inherit; transition: all 0.15s;
+  }
+  .toggle-segmented > div.active {
+    background: #2a4a6a; color: #fff;
+  }
+
+  /* T4 — Tick chunky */
+  .toggle-tick {
+    width: 28px; height: 28px;
+    background: #f3e0b4;
+    border: 2px solid #6b3b18;
+    border-radius: 4px;
+    box-shadow: inset 0 1px 0 #fff8e0;
+    position: relative; cursor: pointer;
+  }
+  .toggle-tick.on::after {
+    content: "✓";
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #6b3b18; font-weight: 900; font-size: 22px;
+  }
+
+  /* ============================================================ */
+  /* SLIDERS                                                       */
+  /* ============================================================ */
+
+  /* S1 — Thin line with knob */
+  .slider-line {
+    width: 180px; height: 4px;
+    background: #2a2f38; border-radius: 2px;
+    position: relative; cursor: pointer;
+  }
+  .slider-line .fill { height: 100%; background: #80d0ff; border-radius: 2px; width: 60%; }
+  .slider-line .knob {
+    position: absolute; top: 50%; left: 60%;
+    width: 14px; height: 14px; border-radius: 7px;
+    background: #fff; transform: translate(-50%, -50%);
+    box-shadow: 0 0 8px rgba(128, 208, 255, 0.6);
+  }
+
+  /* S2 — Segmented blocks */
+  .slider-segments {
+    display: flex; gap: 4px;
+  }
+  .slider-segments > div {
+    width: 16px; height: 22px;
+    background: #2a2f38; border-radius: 2px;
+  }
+  .slider-segments > div.on { background: linear-gradient(180deg, #80d0ff, #4a8aaa); }
+
+  /* S3 — Hearts/sablier countdown */
+  .slider-hearts {
+    display: flex; gap: 6px;
+  }
+  .slider-hearts > div {
+    width: 18px; height: 18px;
+    color: #2a2f38; font-size: 18px;
+  }
+  .slider-hearts > div.on { color: #ff5566; text-shadow: 0 0 6px rgba(255, 85, 102, 0.5); }
+
+  /* S4 — Chunky bar bevel */
+  .slider-bevel {
+    width: 200px; height: 18px;
+    background: #4a2d1a; border: 2px solid #6b3b18; border-radius: 4px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 0 rgba(0,0,0,0.4);
+  }
+  .slider-bevel .fill {
+    width: 60%; height: 100%;
+    background: linear-gradient(180deg, #d6aa6d 0%, #c69a5d 50%, #9b6a32 100%);
+    box-shadow: inset 0 1px 0 #fff8e0;
+  }
+
+  /* ============================================================ */
+  /* INVENTAIRE SLOTS                                              */
+  /* ============================================================ */
+
+  .inv {
+    display: flex; gap: 6px;
+  }
+
+  /* I1 — Simple frame */
+  .inv-1 .slot {
+    width: 40px; height: 40px;
+    border: 1px solid rgba(255,255,255,0.3);
+    background: rgba(0,0,0,0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; border-radius: 4px;
+  }
+  .inv-1 .slot.active { border-color: #80d0ff; box-shadow: 0 0 8px rgba(128, 208, 255, 0.5); }
+
+  /* I2 — Bevel rétro */
+  .inv-2 .slot {
+    width: 40px; height: 40px;
+    background: #d8b97a;
+    border: 2px solid #6b3b18;
+    box-shadow: inset 0 1px 0 #fff8e0, inset 0 -2px 0 rgba(74, 45, 26, 0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .inv-2 .slot.active { border-color: #fff8e0; box-shadow: 0 0 10px #fff8e0, inset 0 1px 0 #fff8e0; }
+
+  /* I3 — Glow neon */
+  .inv-3 .slot {
+    width: 40px; height: 40px;
+    background: rgba(255, 102, 204, 0.08);
+    border: 1px solid rgba(255, 102, 204, 0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    color: #ffe2f4;
+  }
+  .inv-3 .slot.active {
+    background: rgba(255, 102, 204, 0.25);
+    border-color: #ff66cc;
+    box-shadow: 0 0 14px #ff66cc;
+  }
+
+  /* I4 — Hexagonal */
+  .inv-4 .slot {
+    width: 44px; height: 50px;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+    background: rgba(30, 12, 24, 0.6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    border: 0; position: relative;
+  }
+  .inv-4 .slot.active { background: rgba(255, 220, 230, 0.25); box-shadow: 0 0 14px rgba(255, 220, 230, 0.5); }
+
+  /* ============================================================ */
+  /* HUD                                                           */
+  /* ============================================================ */
+
+  /* H1 — Text minimaliste */
+  .hud-1 {
+    font-family: "VT323", monospace;
+    font-size: 14px;
+    color: rgba(255,255,255,0.8);
+  }
+  .hud-1 .lvl { color: #80d0ff; font-weight: bold; letter-spacing: 1px; }
+
+  /* H2 — Icônes + valeur */
+  .hud-2 {
+    display: flex; flex-direction: column; gap: 4px;
+    font-family: "Pixelify Sans", sans-serif;
+    font-size: 14px;
+    color: #fff;
+  }
+  .hud-2 .item { display: flex; align-items: center; gap: 6px; }
+  .hud-2 .icon { width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; }
+
+  /* H3 — Badge avec fond */
+  .hud-3 {
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .hud-3 .badge {
+    background: rgba(0,0,0,0.6);
+    padding: 4px 10px; border-radius: 3px;
+    font-family: "Inter", sans-serif;
+    font-size: 12px; color: #fff;
+    border-left: 3px solid #80d0ff;
+  }
+
+  /* H4 — Gothic serif chiseled */
+  .hud-4 {
+    font-family: "Cinzel", serif;
+    color: #f5edd9;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+  }
+  .hud-4 .lvl { color: #ffdf85; }
+
+  /* ============================================================ */
+  /* STAT BARS                                                     */
+  /* ============================================================ */
+
+  /* SB1 — barre HP gradient */
+  .hp-bar {
+    width: 200px; height: 14px;
+    background: #2a2f38; border: 1px solid #4a5566; border-radius: 3px; overflow: hidden;
+  }
+  .hp-bar .fill {
+    width: 75%; height: 100%;
+    background: linear-gradient(90deg, #c66e6e, #ff8888);
+  }
+
+  /* SB2 — coeurs */
+  .hearts {
+    display: flex; gap: 4px; font-size: 18px;
+  }
+
+  /* SB3 — segmented */
+  .stat-seg {
+    display: flex; gap: 2px;
+  }
+  .stat-seg > div { width: 14px; height: 18px; background: #2a2f38; }
+  .stat-seg > div.on { background: linear-gradient(180deg, #ff8888, #c66e6e); box-shadow: inset 0 -2px 0 rgba(0,0,0,0.3); }
+
+  /* SB4 — bevel papyrus */
+  .stat-papyrus {
+    width: 200px; height: 14px;
+    background: #4a2d1a;
+    border: 2px solid #6b3b18;
+    box-shadow: inset 0 2px 0 rgba(0,0,0,0.4);
+    overflow: hidden; position: relative;
+  }
+  .stat-papyrus .fill {
+    height: 100%; width: 75%;
+    background: linear-gradient(180deg, #ff8888, #c66e6e);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+
+  /* ============================================================ */
+  /* HERO CARDS                                                    */
+  /* ============================================================ */
+
+  .hero-card {
+    width: 180px; padding: 14px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .hero-sprite {
+    width: 60px; height: 90px;
+    background: rgba(255,255,255,0.05);
+    border: 1px dashed rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px;
+  }
+  .hero-name { font-weight: 700; color: #fff; font-size: 14px; }
+  .hero-tag { font-size: 11px; color: #888c95; text-align: center; }
+
+  /* HC1 — Frameless */
+  .hero-frameless { border-radius: 6px; }
+  .hero-frameless.selected, .hero-frameless:hover {
+    background: rgba(128, 208, 255, 0.08);
+    box-shadow: inset 0 0 0 1px #80d0ff;
+  }
+
+  /* HC2 — Bordered card */
+  .hero-bordered {
+    border: 1px solid #4a5566; border-radius: 8px; background: #1a1d24;
+  }
+  .hero-bordered.selected, .hero-bordered:hover {
+    border-color: #80d0ff; transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(128, 208, 255, 0.3);
+  }
+
+  /* HC3 — Holographic */
+  .hero-holo {
+    background: linear-gradient(135deg, rgba(255, 102, 204, 0.05), rgba(102, 224, 255, 0.05));
+    border: 1px solid transparent;
+    border-radius: 8px;
+    position: relative;
+  }
+  .hero-holo.selected, .hero-holo:hover {
+    background: linear-gradient(135deg, rgba(255, 102, 204, 0.15), rgba(102, 224, 255, 0.15));
+    border-image: linear-gradient(135deg, #ff66cc, #66e0ff) 1;
+    box-shadow: 0 0 20px rgba(255, 102, 204, 0.4);
+  }
+  .hero-holo .hero-name { background: linear-gradient(90deg, #ff66cc, #66e0ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+  /* ===== Cartes héros papyrus/bois (nouvelles, cohérentes avec B4/T4/S4/I2) ===== */
+
+  /* HC4 — Parchemin enroulé */
+  .hero-parchment {
+    background: #f3e0b4;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(170, 110, 60, 0.12), transparent 60%),
+      radial-gradient(circle at 80% 70%, rgba(170, 110, 60, 0.12), transparent 60%);
+    border: 0;
+    border-radius: 0;
+    padding: 20px 14px;
+    color: #4a2d1a;
+    position: relative;
+    box-shadow:
+      inset 0 0 0 2px #6b3b18,
+      inset 0 0 0 4px #f3e0b4,
+      inset 0 0 0 5px #6b3b18,
+      0 4px 0 #6b3b18;
+  }
+  .hero-parchment::before, .hero-parchment::after {
+    content: ""; position: absolute; left: 0; right: 0; height: 14px;
+    background:
+      linear-gradient(180deg, #d8b97a, #9b6a32);
+    border: 2px solid #6b3b18;
+    box-shadow: inset 0 1px 0 #fff8e0, inset 0 -2px 0 rgba(74,45,26,0.4);
+  }
+  .hero-parchment::before { top: -8px; }
+  .hero-parchment::after  { bottom: -8px; }
+  .hero-parchment .hero-sprite {
+    background: rgba(74, 45, 26, 0.08);
+    border: 2px dashed #6b3b18;
+  }
+  .hero-parchment .hero-name {
+    font-family: "Cinzel", serif;
+    color: #6b3b18;
+    text-shadow: 1px 1px 0 rgba(255, 248, 224, 0.7);
+    font-style: italic;
+  }
+  .hero-parchment .hero-tag { color: #8a5b2e; font-style: italic; }
+  .hero-parchment.selected, .hero-parchment:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      inset 0 0 0 2px #6b3b18,
+      inset 0 0 0 4px #f3e0b4,
+      inset 0 0 0 5px #6b3b18,
+      0 6px 0 #6b3b18,
+      0 8px 18px rgba(74,45,26,0.4);
+  }
+
+  /* HC5 — Cadre bois gravé (épais et clouté) */
+  .hero-wood {
+    background: #f3e0b4;
+    border: 0;
+    border-radius: 4px;
+    padding: 16px;
+    color: #4a2d1a;
+    box-shadow:
+      inset 0 0 0 3px #d8b97a,
+      inset 0 0 0 5px #6b3b18,
+      0 4px 0 #4a2d1a;
+    position: relative;
+  }
+  /* clous en coin */
+  .hero-wood::before, .hero-wood::after {
+    content: ""; position: absolute;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #fff8e0, #6b3b18 60%);
+  }
+  .hero-wood::before { top: 9px; left: 9px; }
+  .hero-wood::after  { top: 9px; right: 9px; }
+  .hero-wood .hero-sprite {
+    background: rgba(74, 45, 26, 0.1);
+    border: 2px solid #6b3b18;
+    box-shadow: inset 0 -2px 0 rgba(74,45,26,0.3);
+  }
+  .hero-wood .hero-name {
+    font-family: "Cinzel", serif; color: #4a2d1a; font-weight: 700;
+    text-shadow: 1px 1px 0 rgba(255, 248, 224, 0.7);
+  }
+  .hero-wood .hero-tag { color: #6b3b18; }
+  .hero-wood.selected, .hero-wood:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      inset 0 0 0 3px #ffdf85,
+      inset 0 0 0 5px #6b3b18,
+      0 6px 0 #4a2d1a,
+      0 0 18px rgba(255, 223, 133, 0.4);
+  }
+
+  /* HC6 — Médaillon doré (rond, RPG select) */
+  .hero-medallion {
+    background: radial-gradient(circle, #f3e0b4 0%, #d8b97a 70%, #9b6a32 100%);
+    border: 4px solid #6b3b18;
+    border-radius: 50%;
+    width: 200px; height: 200px;
+    padding: 22px;
+    color: #4a2d1a;
+    box-shadow:
+      inset 0 2px 4px rgba(255, 248, 224, 0.7),
+      inset 0 -4px 0 rgba(74, 45, 26, 0.4),
+      0 0 0 2px #d8b97a,
+      0 0 0 4px #6b3b18,
+      0 6px 0 #4a2d1a;
+    gap: 4px;
+  }
+  .hero-medallion .hero-sprite {
+    width: 56px; height: 56px;
+    background: rgba(74, 45, 26, 0.1);
+    border: 2px solid #6b3b18;
+    border-radius: 50%;
+  }
+  .hero-medallion .hero-name {
+    font-family: "Cinzel", serif; font-weight: 700; color: #4a2d1a;
+    text-shadow: 1px 1px 0 #fff8e0;
+    font-size: 13px;
+  }
+  .hero-medallion .hero-tag { color: #6b3b18; font-size: 10px; }
+  .hero-medallion.selected, .hero-medallion:hover {
+    box-shadow:
+      inset 0 2px 4px rgba(255, 248, 224, 0.9),
+      inset 0 -4px 0 rgba(74, 45, 26, 0.4),
+      0 0 0 2px #ffdf85,
+      0 0 0 4px #6b3b18,
+      0 6px 0 #4a2d1a,
+      0 0 24px rgba(255, 223, 133, 0.6);
+    transform: scale(1.04);
+  }
+
+  /* HC7 — Stèle en pierre gravée */
+  .hero-stone {
+    background:
+      linear-gradient(180deg, #a09080 0%, #6b6055 100%);
+    background-image:
+      radial-gradient(circle at 30% 20%, rgba(255,255,255,0.1), transparent 50%),
+      linear-gradient(180deg, #a09080 0%, #6b6055 100%);
+    border-radius: 4px 4px 0 0;
+    border-bottom: 4px solid #3a3530;
+    padding: 18px 14px;
+    color: #2a2520;
+    box-shadow:
+      inset 0 2px 0 rgba(255,255,255,0.2),
+      inset 0 -2px 0 rgba(0,0,0,0.3),
+      inset 2px 0 0 rgba(255,255,255,0.1),
+      inset -2px 0 0 rgba(0,0,0,0.2),
+      0 4px 0 #3a3530;
+    /* arrondi en haut */
+    position: relative;
+  }
+  .hero-stone::before {
+    content: ""; position: absolute;
+    top: -8px; left: 8px; right: 8px; height: 16px;
+    background: linear-gradient(180deg, #a09080 0%, transparent 100%);
+    border-radius: 50% 50% 0 0;
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.2);
+  }
+  .hero-stone .hero-sprite {
+    background: rgba(0,0,0,0.2);
+    border: 2px solid #3a3530;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+  }
+  .hero-stone .hero-name {
+    font-family: "Cinzel", serif; font-weight: 700;
+    color: #f5edd9;
+    text-shadow:
+      1px 1px 0 #3a3530, 2px 2px 0 rgba(0,0,0,0.5);
+    letter-spacing: 2px;
+  }
+  .hero-stone .hero-tag { color: #d8d4c8; font-style: italic; }
+  .hero-stone.selected, .hero-stone:hover {
+    background:
+      linear-gradient(180deg, #b8a89a 0%, #806b58 100%);
+    box-shadow:
+      inset 0 2px 0 rgba(255,255,255,0.3),
+      inset 0 -2px 0 rgba(0,0,0,0.3),
+      inset 2px 0 0 rgba(255,255,255,0.1),
+      inset -2px 0 0 rgba(0,0,0,0.2),
+      0 6px 0 #3a3530,
+      0 0 20px rgba(255, 223, 133, 0.3);
+  }
+  .hero-stone.selected .hero-name, .hero-stone:hover .hero-name { color: #ffdf85; }
+
+  /* HC8 — Carte à jouer (tarot RPG) */
+  .hero-tarot {
+    background: #f3e0b4;
+    border: 4px double #4a2d1a;
+    border-radius: 8px;
+    padding: 14px 10px;
+    color: #4a2d1a;
+    position: relative;
+    box-shadow:
+      0 4px 0 #4a2d1a,
+      0 6px 16px rgba(74,45,26,0.4);
+  }
+  .hero-tarot .hero-sprite {
+    background: rgba(74, 45, 26, 0.08);
+    border: 1px solid #6b3b18;
+    border-radius: 4px;
+    width: 70px; height: 100px;
+  }
+  .hero-tarot .hero-name {
+    font-family: "Cinzel", serif; font-weight: 700; color: #4a2d1a;
+    border-top: 1px solid #6b3b18;
+    padding-top: 6px;
+    margin-top: 2px;
+  }
+  .hero-tarot .hero-tag { color: #6b3b18; font-size: 10px; font-style: italic; }
+  .hero-tarot::before {
+    content: "❦";
+    position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+    color: #6b3b18; font-size: 14px;
+  }
+  .hero-tarot::after {
+    content: "❦";
+    position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
+    color: #6b3b18; font-size: 14px;
+  }
+  .hero-tarot.selected, .hero-tarot:hover {
+    transform: translateY(-3px) rotate(-1deg);
+    box-shadow:
+      0 6px 0 #4a2d1a,
+      0 12px 24px rgba(255, 223, 133, 0.4),
+      0 0 0 2px #ffdf85;
+  }
+
+  /* ============================================================ */
+  /* PROGRESS / EFFECT TIMER                                       */
+  /* ============================================================ */
+
+  .effect-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px;
+    background: rgba(128, 208, 255, 0.15);
+    border: 1px solid #80d0ff;
+    color: #80d0ff;
+    font-size: 12px; font-family: "Pixelify Sans", sans-serif;
+  }
+  .effect-pill::before { content: "💎"; font-size: 14px; }
+
+  .effect-block {
+    display: flex; flex-direction: column; gap: 4px;
+    width: 120px;
+  }
+  .effect-block .label { font-size: 11px; color: #fff; display: flex; justify-content: space-between; font-family: "Pixelify Sans"; }
+  .effect-block .bar { height: 4px; background: #2a2f38; border-radius: 2px; overflow: hidden; }
+  .effect-block .bar .fill { height: 100%; background: #80d0ff; width: 65%; }
+
+  /* ============================================================ */
+  /* NOTIFICATIONS / TOASTS                                        */
+  /* ============================================================ */
+
+  .toast {
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .toast-1 {
+    background: rgba(0,0,0,0.7); color: #fff;
+    border-left: 4px solid #80d0ff;
+  }
+  .toast-2 {
+    background: linear-gradient(180deg, #2a4a6a, #1e3550);
+    color: #fff; border: 1px solid #5a8caa;
+    border-radius: 4px;
+  }
+  .toast-3 {
+    background: #f3e0b4; color: #4a2d1a;
+    border: 2px solid #6b3b18;
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<h1 class="page-title">Adventure Timing — Composants UI</h1>
+<p class="page-sub">Survole chaque composant pour voir le hover/selected. Pioche ce qui t'accroche par catégorie.</p>
+
+<!-- ============================================================ -->
+<section>
+  <h2>Boutons</h2>
+  <p class="section-sub">Style du bouton principal des menus.</p>
+  <div class="row">
+    <div class="variant"><div class="variant-label">B1 — Minimal</div><button class="btn btn-minimal">Nouvelle partie</button></div>
+    <div class="variant"><div class="variant-label">B2 — Bordered</div><button class="btn btn-bordered">Nouvelle partie</button></div>
+    <div class="variant"><div class="variant-label">B3 — Filled</div><button class="btn btn-filled">Nouvelle partie</button></div>
+    <div class="variant"><div class="variant-label">B4 — Bevel rétro</div><button class="btn btn-bevel">Nouvelle partie</button></div>
+    <div class="variant dark-bg"><div class="variant-label">B5 — Arrow cursor</div><button class="btn btn-arrow">NOUVELLE PARTIE</button></div>
+    <div class="variant dark-bg"><div class="variant-label">B6 — Neon glow</div><button class="btn btn-neon">NOUVELLE</button></div>
+    <div class="variant pink-bg"><div class="variant-label">B7 — Glass</div><button class="btn btn-glass">Nouvelle partie</button></div>
+    <div class="variant"><div class="variant-label">B8 — Pill chunky</div><button class="btn btn-pill">Nouvelle partie</button></div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+  <h2>Toggles</h2>
+  <p class="section-sub">Pour le plein écran et options on/off.</p>
+  <div class="row">
+    <div class="variant"><div class="variant-label">T1 — Switch classique</div>
+      <div style="display:flex;gap:14px;align-items:center"><span style="color:#888">OFF</span><div class="toggle-switch"></div></div>
+      <div style="display:flex;gap:14px;align-items:center"><span style="color:#fff">ON</span><div class="toggle-switch on"></div></div>
+    </div>
+    <div class="variant"><div class="variant-label">T2 — Checkbox pixel</div>
+      <div style="display:flex;gap:14px;align-items:center"><div class="toggle-pixel"></div><span style="color:#888">Plein écran</span></div>
+      <div style="display:flex;gap:14px;align-items:center"><div class="toggle-pixel on"></div><span style="color:#fff">Plein écran</span></div>
+    </div>
+    <div class="variant"><div class="variant-label">T3 — Segmented</div>
+      <div class="toggle-segmented"><div>OFF</div><div class="active">ON</div></div>
+      <div class="toggle-segmented"><div class="active">OFF</div><div>ON</div></div>
+    </div>
+    <div class="variant"><div class="variant-label">T4 — Tick papyrus</div>
+      <div style="display:flex;gap:14px;align-items:center"><div class="toggle-tick"></div><span style="color:#888">Plein écran</span></div>
+      <div style="display:flex;gap:14px;align-items:center"><div class="toggle-tick on"></div><span style="color:#fff">Plein écran</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+  <h2>Sliders / Volumes</h2>
+  <p class="section-sub">Pour les 3 volumes (Master / Music / SFX).</p>
+  <div class="row">
+    <div class="variant"><div class="variant-label">S1 — Ligne avec knob</div>
+      <div class="slider-line"><div class="fill"></div><div class="knob"></div></div>
+      <div style="color:#888c95;font-size:12px">60%</div>
+    </div>
+    <div class="variant"><div class="variant-label">S2 — Segments blocs</div>
+      <div class="slider-segments">
+        <div class="on"></div><div class="on"></div><div class="on"></div>
+        <div class="on"></div><div class="on"></div><div class="on"></div>
+        <div></div><div></div><div></div><div></div>
+      </div>
+      <div style="color:#888c95;font-size:12px">6 / 10</div>
+    </div>
+    <div class="variant"><div class="variant-label">S3 — Hearts (option HP)</div>
+      <div class="slider-hearts">
+        <div class="on">♥</div><div class="on">♥</div><div class="on">♥</div>
+        <div>♥</div><div>♥</div>
+      </div>
+      <div style="color:#888c95;font-size:12px">3 / 5</div>
+    </div>
+    <div class="variant"><div class="variant-label">S4 — Bevel papyrus</div>
+      <div class="slider-bevel"><div class="fill"></div></div>
+      <div style="color:#888c95;font-size:12px">60%</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+  <h2>Slots d'inventaire</h2>
+  <p class="section-sub">Pour les 3 slots throwables (bombe / glace / plateforme).</p>
+  <div class="row">
+    <div class="variant"><div class="variant-label">I1 — Frame simple</div>
+      <div class="inv inv-1"><div class="slot active">💣</div><div class="slot">🧊</div><div class="slot">🌐</div></div>
+    </div>
+    <div class="variant"><div class="variant-label">I2 — Bevel rétro</div>
+      <div class="inv inv-2"><div class="slot active">💣</div><div class="slot">🧊</div><div class="slot">🌐</div></div>
+    </div>
+    <div class="variant"><div class="variant-label">I3 — Glow neon</div>
+      <div class="inv inv-3"><div class="slot active">💣</div><div class="slot">🧊</div><div class="slot">🌐</div></div>
+    </div>
+    <div class="variant"><div class="variant-label">I4 — Hexagonal</div>
+      <div class="inv inv-4"><div class="slot active">💣</div><div class="slot">🧊</div><div class="slot">🌐</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+  <h2>HUD (top-left)</h2>
+  <p class="section-sub">Niveau / Morts / Temps. Le HUD doit rester lisible sans distraire.</p>
+  <div class="row">
+    <div class="variant dark-bg" style="align-items:flex-start; padding:24px"><div class="variant-label">H1 — Mono minimal</div>
+      <div class="hud-1"><div class="lvl">NIVEAU 1 / 2</div><div>Morts : 0</div><div>Temps : 12.4 s</div></div>
+    </div>
+    <div class="variant pink-bg" style="align-items:flex-start; padding:24px"><div class="variant-label">H2 — Icônes + pixel</div>
+      <div class="hud-2"><div class="item"><span class="icon">⛳</span> 1 / 2</div><div class="item"><span class="icon">💀</span> 0</div><div class="item"><span class="icon">⏱</span> 12.4 s</div></div>
+    </div>
+    <div class="variant" style="align-items:flex-start; padding:24px"><div class="variant-label">H3 — Badges</div>
+      <div class="hud-3"><div class="badge">Niveau 1 / 2</div><div class="badge">Morts : 0</div><div class="badge">Temps : 12.4 s</div></div>
+    </div>
+    <div class="variant teal-bg" style="align-items:flex-start; padding:24px"><div class="variant-label">H4 — Gothic serif</div>
+      <div class="hud-4"><div class="lvl">NIVEAU I · II</div><div>Mortes — 0</div><div>Temps — 12.4 s</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+  <h2>Barres de stat (HP, etc.)</h2>
+  <p class="section-sub">Pour quand on ajoutera des PV au joueur ou aux ennemis.</p>
+  <div class="row">
+    <div class="variant"><div class="variant-label">SB1 — Bar gradient</div>
+      <div class="hp-bar"><div class="fill"></div></div>
+      <span style="color:#fff;font-size:13px">3 / 4 HP</span>
+    </div>
+    <div class="variant"><div class="variant-label">SB2 — Cœurs</div>
+      <div class="hearts">
+        <span style="color:#ff5566">♥</span>
+        <span style="color:#ff5566">♥</span>
+        <span style="color:#ff5566">♥</span>
+        <span style="color:#444">♥</span>
+      </div>
+    </div>
+    <div class="variant"><div class="variant-label">SB3 — Segments</div>
+      <div class="stat-seg"><div class="on"></div><div class="on"></div><div class="on"></div><div class="on"></div><div></div><div></div><div></div><div></div></div>
+      <span style="color:#fff;font-size:13px">4 / 8</span>
+    </div>
+    <div class="variant"><div class="variant-label">SB4 — Bevel papyrus</div>
+      <div class="stat-papyrus"><div class="fill"></div></div>
+      <span style="color:#fff;font-size:13px">3 / 4 HP</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+  <h2>Cartes héros</h2>
+  <p class="section-sub">Pour l'écran de sélection des 3 héros.</p>
+  <div class="row" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))">
+    <div class="variant"><div class="variant-label">HC4 — Parchemin enroulé</div>
+      <div class="hero-card hero-parchment selected">
+        <div class="hero-sprite">🧙</div>
+        <div class="hero-name">L'Errante</div>
+        <div class="hero-tag">Équilibrée, double saut</div>
+      </div>
+    </div>
+    <div class="variant"><div class="variant-label">HC5 — Cadre bois clouté</div>
+      <div class="hero-card hero-wood selected">
+        <div class="hero-sprite">⚡</div>
+        <div class="hero-name">Le Funambule</div>
+        <div class="hero-tag">Rapide, triple saut</div>
+      </div>
+    </div>
+    <div class="variant"><div class="variant-label">HC6 — Médaillon rond</div>
+      <div class="hero-card hero-medallion selected">
+        <div class="hero-sprite">🛡️</div>
+        <div class="hero-name">Le Gardien</div>
+        <div class="hero-tag">Lourd</div>
+      </div>
+    </div>
+    <div class="variant"><div class="variant-label">HC7 — Stèle de pierre</div>
+      <div class="hero-card hero-stone selected">
+        <div class="hero-sprite">🧙</div>
+        <div class="hero-name">L'Errante</div>
+        <div class="hero-tag">Équilibrée, double saut</div>
+      </div>
+    </div>
+    <div class="variant"><div class="variant-label">HC8 — Carte tarot</div>
+      <div class="hero-card hero-tarot selected">
+        <div class="hero-sprite">⚡</div>
+        <div class="hero-name">Le Funambule</div>
+        <div class="hero-tag">Rapide, triple saut</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="section-sub" style="margin-top:16px">Anciennes propositions (rappel) :</p>
+  <div class="row">
+    <div class="variant"><div class="variant-label">HC1 — Frameless (rappel)</div>
+      <div class="hero-card hero-frameless">
+        <div class="hero-sprite">🧙</div>
+        <div class="hero-name">L'Errante</div>
+        <div class="hero-tag">Équilibrée, double saut</div>
+      </div>
+    </div>
+    <div class="variant"><div class="variant-label">HC2 — Bordered (rappel)</div>
+      <div class="hero-card hero-bordered">
+        <div class="hero-sprite">⚡</div>
+        <div class="hero-name">Le Funambule</div>
+        <div class="hero-tag">Rapide, triple saut</div>
+      </div>
+    </div>
+    <div class="variant"><div class="variant-label">HC3 — Holographic (rappel)</div>
+      <div class="hero-card hero-holo">
+        <div class="hero-sprite">🛡️</div>
+        <div class="hero-name">Le Gardien</div>
+        <div class="hero-tag">Lourd, saut puissant</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+  <h2>Effets actifs (timers)</h2>
+  <p class="section-sub">Indique quels buffs sont actifs (pétale, plume, sablier...).</p>
+  <div class="row">
+    <div class="variant"><div class="variant-label">E1 — Pills compactes</div>
+      <div style="display:flex; flex-direction:column; gap:6px">
+        <div class="effect-pill">Cristal</div>
+        <div class="effect-pill" style="background:rgba(232,168,76,0.15);border-color:#e8a84c;color:#e8a84c">🟠 Invincible 2.4s</div>
+        <div class="effect-pill" style="background:rgba(255,255,255,0.1);border-color:#fff;color:#fff">🪶 Plume 3.1s</div>
+      </div>
+    </div>
+    <div class="variant"><div class="variant-label">E2 — Bars timer</div>
+      <div style="display:flex; flex-direction:column; gap:8px">
+        <div class="effect-block"><div class="label"><span>💎 Cristal</span><span>2.4s</span></div><div class="bar"><div class="fill"></div></div></div>
+        <div class="effect-block"><div class="label"><span>🟠 Pétale</span><span>0.8s</span></div><div class="bar"><div class="fill" style="width:25%;background:#e8a84c"></div></div></div>
+      </div>
+    </div>
+    <div class="variant dark-bg"><div class="variant-label">E3 — Icônes rondes</div>
+      <div style="display:flex; gap:8px">
+        <div style="width:36px;height:36px;border-radius:18px;background:rgba(128,208,255,0.2);border:2px solid #80d0ff;display:flex;align-items:center;justify-content:center;font-size:18px">💎</div>
+        <div style="width:36px;height:36px;border-radius:18px;background:rgba(232,168,76,0.2);border:2px solid #e8a84c;display:flex;align-items:center;justify-content:center;font-size:18px">🟠</div>
+        <div style="width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,0.1);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:18px">🪶</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+  <h2>Notifications / Toasts</h2>
+  <p class="section-sub">Pour annoncer un checkpoint touché, un objet ramassé, un record battu.</p>
+  <div class="row">
+    <div class="variant" style="background:#060810"><div class="variant-label">N1 — Discret latéral</div>
+      <div class="toast toast-1">✓ Checkpoint atteint</div>
+    </div>
+    <div class="variant"><div class="variant-label">N2 — Filled accent</div>
+      <div class="toast toast-2">💎 +1 Cristal cyan</div>
+    </div>
+    <div class="variant"><div class="variant-label">N3 — Papyrus bois</div>
+      <div class="toast toast-3">🏆 Nouveau record !</div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

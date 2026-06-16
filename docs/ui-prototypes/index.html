@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Adventure Timing — Prototypes UI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;700;900&family=Pixelify+Sans:wght@400;700&family=Press+Start+2P&family=VT323&family=Crimson+Pro:wght@400;700&family=Caveat:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Inter", system-ui, sans-serif;
+    background: #14171c;
+    color: #d8dde6;
+    padding: 32px;
+    min-height: 100vh;
+  }
+  h1.page-title {
+    text-align: center;
+    font-weight: 900;
+    font-size: 28px;
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+  }
+  p.page-sub {
+    text-align: center;
+    color: #888c95;
+    margin-bottom: 32px;
+    font-size: 14px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 24px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+  .card {
+    border: 1px solid #2a2f38;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #1a1d24;
+    display: flex;
+    flex-direction: column;
+  }
+  .card-header {
+    background: #20242e;
+    padding: 12px 16px;
+    border-bottom: 1px solid #2a2f38;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .card-name {
+    font-weight: 700;
+    font-size: 15px;
+    color: #fff;
+  }
+  .card-tag {
+    font-size: 11px;
+    color: #888c95;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .screen {
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    position: relative;
+  }
+  .card-notes {
+    padding: 14px 16px;
+    border-top: 1px solid #2a2f38;
+    font-size: 13px;
+    color: #aab0bc;
+    line-height: 1.5;
+  }
+  .card-notes b { color: #fff; font-weight: 600; }
+
+  /* ============================================================ */
+  /* DESIGN 1 — Hollow Knight (gothic sober)                       */
+  /* ============================================================ */
+  .design-hk {
+    background:
+      radial-gradient(ellipse at center, #2c3140 0%, #14181f 80%);
+    color: #d8d4c8;
+    font-family: "Cinzel", "Crimson Pro", serif;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 24px;
+  }
+  .design-hk .title {
+    font-size: 38px;
+    font-weight: 700;
+    letter-spacing: 6px;
+    color: #f5edd9;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.7);
+  }
+  .design-hk .sub {
+    font-size: 12px;
+    letter-spacing: 4px;
+    color: #b2a78f;
+    text-transform: uppercase;
+  }
+  .design-hk .btn {
+    border: 1px solid transparent;
+    background: transparent;
+    color: #d8d4c8;
+    font-family: inherit;
+    font-size: 16px;
+    letter-spacing: 4px;
+    padding: 8px 24px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .design-hk .btn:hover, .design-hk .btn.selected {
+    color: #ffdf85;
+    border-color: #ffdf85;
+    box-shadow: 0 0 12px rgba(255, 223, 133, 0.3);
+  }
+
+  /* ============================================================ */
+  /* DESIGN 2 — Celeste (pastel friendly)                          */
+  /* ============================================================ */
+  .design-celeste {
+    background:
+      linear-gradient(180deg, #5a4170 0%, #c87a8e 100%);
+    color: #fff;
+    font-family: "Inter", sans-serif;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 28px;
+    position: relative;
+  }
+  .design-celeste::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cg fill='%23ffffff' opacity='0.06'%3E%3Ccircle cx='30' cy='40' r='2'/%3E%3Ccircle cx='90' cy='20' r='1.5'/%3E%3Ccircle cx='140' cy='100' r='2'/%3E%3Ccircle cx='60' cy='120' r='1.5'/%3E%3Ccircle cx='110' cy='70' r='2'/%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+  .design-celeste .title {
+    font-size: 44px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-shadow: 0 4px 0 #2d1c3d, 0 6px 12px rgba(0,0,0,0.4);
+    transform: rotate(-2deg);
+  }
+  .design-celeste .sub {
+    font-size: 14px;
+    font-weight: 700;
+    text-shadow: 0 2px 0 rgba(45, 28, 61, 0.5);
+  }
+  .design-celeste .btn {
+    background: #fff;
+    color: #5a4170;
+    border: 3px solid #2d1c3d;
+    border-radius: 12px;
+    box-shadow: 0 4px 0 #2d1c3d;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 15px;
+    padding: 10px 26px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .design-celeste .btn:hover, .design-celeste .btn.selected {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #2d1c3d;
+  }
+  .design-celeste .btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #2d1c3d;
+  }
+
+  /* ============================================================ */
+  /* DESIGN 3 — Death's Door (minimal mono)                        */
+  /* ============================================================ */
+  .design-deathsdoor {
+    background: #0a0a0a;
+    color: #fff;
+    font-family: "Press Start 2P", monospace;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    padding: 32px;
+  }
+  .design-deathsdoor .title {
+    font-size: 22px;
+    letter-spacing: 4px;
+    color: #fff;
+  }
+  .design-deathsdoor .sub {
+    font-size: 9px;
+    color: #555;
+    letter-spacing: 3px;
+  }
+  .design-deathsdoor .btn {
+    background: transparent;
+    color: #888;
+    border: 0;
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 8px;
+    cursor: pointer;
+    transition: color 0.2s;
+    position: relative;
+  }
+  .design-deathsdoor .btn:hover, .design-deathsdoor .btn.selected {
+    color: #fff;
+  }
+  .design-deathsdoor .btn.selected::before {
+    content: "▶";
+    position: absolute;
+    left: -16px;
+    color: #fff;
+  }
+
+  /* ============================================================ */
+  /* DESIGN 4 — Hyper Light Drifter (neon vapor)                   */
+  /* ============================================================ */
+  .design-hld {
+    background:
+      linear-gradient(135deg, #0d1428 0%, #2a0f3d 50%, #0d1428 100%);
+    color: #f4d8ee;
+    font-family: "VT323", monospace;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .design-hld::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent 0px, transparent 3px,
+      rgba(255, 100, 200, 0.04) 3px, rgba(255, 100, 200, 0.04) 4px);
+    pointer-events: none;
+  }
+  .design-hld .title {
+    font-size: 56px;
+    color: #ff66cc;
+    text-shadow:
+      0 0 4px #ff66cc, 0 0 18px #ff66cc,
+      0 0 36px rgba(255, 102, 204, 0.4);
+    letter-spacing: 4px;
+  }
+  .design-hld .sub {
+    font-size: 18px;
+    color: #66e0ff;
+    text-shadow: 0 0 8px rgba(102, 224, 255, 0.6);
+    letter-spacing: 2px;
+  }
+  .design-hld .btn {
+    background: rgba(255, 102, 204, 0.06);
+    border: 1px solid #ff66cc;
+    color: #ffe2f4;
+    font-family: inherit;
+    font-size: 22px;
+    padding: 4px 28px;
+    cursor: pointer;
+    letter-spacing: 4px;
+    transition: all 0.2s;
+  }
+  .design-hld .btn:hover, .design-hld .btn.selected {
+    background: rgba(255, 102, 204, 0.25);
+    box-shadow: 0 0 20px #ff66cc, inset 0 0 12px rgba(255, 102, 204, 0.3);
+    color: #fff;
+  }
+
+  /* ============================================================ */
+  /* DESIGN 5 — Stardew (papyrus rustic)                           */
+  /* ============================================================ */
+  .design-stardew {
+    background: #f3e0b4;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(170, 110, 60, 0.12), transparent 60%),
+      radial-gradient(circle at 80% 70%, rgba(170, 110, 60, 0.12), transparent 60%);
+    color: #4a2d1a;
+    font-family: "Crimson Pro", serif;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 28px;
+  }
+  .design-stardew .title {
+    font-size: 42px;
+    font-weight: 700;
+    color: #6b3b18;
+    text-shadow: 1px 1px 0 #f3e0b4, 2px 2px 0 rgba(107, 59, 24, 0.3);
+    font-style: italic;
+  }
+  .design-stardew .sub {
+    font-size: 14px;
+    color: #8a5b2e;
+    font-style: italic;
+  }
+  .design-stardew .btn {
+    background:
+      linear-gradient(180deg, #c69a5d 0%, #9b6a32 100%);
+    color: #fff8e0;
+    border: 2px solid #4a2d1a;
+    border-radius: 4px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 16px;
+    padding: 8px 28px;
+    cursor: pointer;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 248, 224, 0.5),
+      inset 0 -2px 0 rgba(74, 45, 26, 0.4),
+      0 2px 4px rgba(74, 45, 26, 0.4);
+    text-shadow: 1px 1px 0 #4a2d1a;
+    transition: all 0.1s;
+  }
+  .design-stardew .btn:hover, .design-stardew .btn.selected {
+    background: linear-gradient(180deg, #d6aa6d 0%, #ab7a42 100%);
+    transform: translateY(-1px);
+  }
+  .design-stardew .btn:active {
+    transform: translateY(1px);
+  }
+
+  /* ============================================================ */
+  /* DESIGN 6 — Camille Unknown (current direction, refined)       */
+  /* ============================================================ */
+  .design-camille {
+    background:
+      linear-gradient(180deg, #f4b5bd 0%, #d77a90 60%, #6f2748 100%);
+    color: #fff;
+    font-family: "Pixelify Sans", sans-serif;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  /* monolithes flottants */
+  .design-camille::before {
+    content: "";
+    position: absolute;
+    top: -10%;
+    left: 30%;
+    width: 32px; height: 60%;
+    background: linear-gradient(180deg, rgba(212, 124, 144, 0.7), transparent);
+    box-shadow: 220px -60px 0 0 rgba(212, 124, 144, 0.7), 60px 100px 0 -8px rgba(212, 124, 144, 0.6);
+    pointer-events: none;
+  }
+  .design-camille::after {
+    content: "○";
+    position: absolute;
+    top: 26%; left: 50%;
+    transform: translateX(-50%);
+    color: rgba(252, 220, 210, 0.9);
+    font-size: 14px;
+    pointer-events: none;
+  }
+  .design-camille > * { position: relative; z-index: 1; }
+  .design-camille .title {
+    font-size: 42px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow:
+      0 2px 0 rgba(60, 20, 40, 0.5),
+      0 0 18px rgba(255, 255, 255, 0.25);
+    letter-spacing: 2px;
+  }
+  .design-camille .sub {
+    font-size: 14px;
+    color: rgba(255, 240, 235, 0.85);
+    letter-spacing: 1px;
+  }
+  .design-camille .btn {
+    background: rgba(30, 12, 24, 0.45);
+    backdrop-filter: blur(2px);
+    border: 1px solid rgba(255, 220, 230, 0.4);
+    color: #fff8f9;
+    font-family: inherit;
+    font-size: 18px;
+    padding: 8px 32px;
+    border-radius: 2px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+  .design-camille .btn:hover, .design-camille .btn.selected {
+    background: rgba(40, 16, 30, 0.65);
+    border-color: #fff;
+    box-shadow: 0 0 14px rgba(255, 220, 230, 0.5);
+  }
+
+  /* ============================================================ */
+  /* HUD previews                                                  */
+  /* ============================================================ */
+  .hud {
+    position: absolute;
+    top: 12px; left: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 11px;
+    font-family: "VT323", monospace;
+    color: rgba(255, 255, 255, 0.7);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+  .hud .lvl { color: #80d0ff; font-weight: bold; }
+
+  /* Inventaire 3 slots in corner */
+  .inventory {
+    position: absolute;
+    bottom: 12px; right: 12px;
+    display: flex;
+    gap: 6px;
+  }
+  .inv-slot {
+    width: 28px; height: 28px;
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 4px;
+    background: rgba(0,0,0,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .inv-slot.active {
+    border-color: #80d0ff;
+    box-shadow: 0 0 8px rgba(128, 208, 255, 0.5);
+  }
+
+  .vote {
+    display: flex;
+    gap: 12px;
+    padding: 10px 16px;
+    border-top: 1px solid #2a2f38;
+  }
+  .vote-btn {
+    flex: 1;
+    padding: 6px;
+    border: 1px solid #2a2f38;
+    background: #1a1d24;
+    color: #888c95;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+  .vote-btn:hover {
+    color: #fff;
+    border-color: #5a8caa;
+  }
+  .vote-btn.up { color: #6ec5a0; border-color: #2e5a44; }
+  .vote-btn.down { color: #c66e6e; border-color: #5a2e2e; }
+</style>
+</head>
+<body>
+
+<h1 class="page-title">Adventure Timing — Prototypes UI</h1>
+<p class="page-sub">6 directions visuelles. Survole les boutons pour voir le hover. Dis-moi celles qui t'accrochent.</p>
+
+<div class="grid">
+
+  <!-- Design 1: Hollow Knight -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-name">1 — Hollow Knight</div>
+      <div class="card-tag">Gothic sober · Cinzel</div>
+    </div>
+    <div class="screen">
+      <div class="design-hk">
+        <div class="hud"><div class="lvl">NIVEAU 1 / 2</div><div>Morts : 0</div><div>Temps : 12.4 s</div></div>
+        <div class="title">ADVENTURE</div>
+        <div class="title">TIMING</div>
+        <div class="sub">Une nuit sans étoiles à traverser</div>
+        <button class="btn selected">Nouvelle partie</button>
+        <button class="btn">Paramètres</button>
+        <button class="btn">Quitter</button>
+        <div class="inventory">
+          <div class="inv-slot active">💣</div>
+          <div class="inv-slot">🧊</div>
+          <div class="inv-slot">🌐</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-notes"><b>Vibe</b> : sobre, mature, Hollow Knight / Sekiro. Texte sans cadre, surlignement doré au hover.</div>
+  </div>
+
+  <!-- Design 2: Celeste -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-name">2 — Celeste</div>
+      <div class="card-tag">Pastel friendly · Inter bold</div>
+    </div>
+    <div class="screen">
+      <div class="design-celeste">
+        <div class="hud"><div class="lvl">NIVEAU 1 / 2</div><div>Morts : 0</div><div>Temps : 12.4 s</div></div>
+        <div class="title">Adventure Timing</div>
+        <div class="sub">Saute, tombe, recommence.</div>
+        <button class="btn selected">Nouvelle partie</button>
+        <button class="btn">Paramètres</button>
+        <button class="btn">Quitter</button>
+        <div class="inventory">
+          <div class="inv-slot active">💣</div>
+          <div class="inv-slot">🧊</div>
+          <div class="inv-slot">🌐</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-notes"><b>Vibe</b> : doux, accessible, Celeste / Towerfall. Boutons épais avec ombre portée. Énergie positive.</div>
+  </div>
+
+  <!-- Design 3: Death's Door -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-name">3 — Death's Door</div>
+      <div class="card-tag">Minimal mono · Press Start 2P</div>
+    </div>
+    <div class="screen">
+      <div class="design-deathsdoor">
+        <div class="hud"><div class="lvl">L1/2</div><div>MORTS 0</div><div>12.4S</div></div>
+        <div class="title">ADVENTURE</div>
+        <div class="title" style="font-size:14px">·  TIMING  ·</div>
+        <button class="btn selected">NOUVELLE PARTIE</button>
+        <button class="btn">PARAMETRES</button>
+        <button class="btn">QUITTER</button>
+        <div class="inventory">
+          <div class="inv-slot active">💣</div>
+          <div class="inv-slot">🧊</div>
+          <div class="inv-slot">🌐</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-notes"><b>Vibe</b> : ultra-minimal, brutal arcade, indie chic. Une seule couleur de texte, curseur ▶ en marge.</div>
+  </div>
+
+  <!-- Design 4: Hyper Light Drifter -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-name">4 — Hyper Light Drifter</div>
+      <div class="card-tag">Neon vapor · VT323 + glow</div>
+    </div>
+    <div class="screen">
+      <div class="design-hld">
+        <div class="hud"><div class="lvl">LV 1/2</div><div>MORTS:0</div><div>12.4S</div></div>
+        <div class="title">ADVENTURE</div>
+        <div class="sub">UNE NUIT SANS ÉTOILES</div>
+        <button class="btn selected">NOUVELLE PARTIE</button>
+        <button class="btn">PARAMÈTRES</button>
+        <button class="btn">QUITTER</button>
+        <div class="inventory">
+          <div class="inv-slot active">💣</div>
+          <div class="inv-slot">🧊</div>
+          <div class="inv-slot">🌐</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-notes"><b>Vibe</b> : néon synthwave, scanlines CRT, glow magenta + cyan. Hyper Light Drifter / FEZ.</div>
+  </div>
+
+  <!-- Design 5: Stardew Valley -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-name">5 — Stardew Valley</div>
+      <div class="card-tag">Papyrus rustic · Crimson Pro italic</div>
+    </div>
+    <div class="screen">
+      <div class="design-stardew">
+        <div class="hud" style="color: #6b3b18"><div class="lvl" style="color:#3070a0">Niveau 1 / 2</div><div>Morts : 0</div><div>Temps : 12.4 s</div></div>
+        <div class="title">Adventure Timing</div>
+        <div class="sub">Une nuit sans étoiles à traverser</div>
+        <button class="btn selected">Nouvelle partie</button>
+        <button class="btn">Paramètres</button>
+        <button class="btn">Quitter</button>
+        <div class="inventory">
+          <div class="inv-slot active" style="background:#fff8e0; border-color:#4a2d1a">💣</div>
+          <div class="inv-slot" style="background:#fff8e0; border-color:#4a2d1a">🧊</div>
+          <div class="inv-slot" style="background:#fff8e0; border-color:#4a2d1a">🌐</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-notes"><b>Vibe</b> : papyrus chaud, Stardew / Don't Starve. Cosy, aventure pépère. Boutons bois sculptés.</div>
+  </div>
+
+  <!-- Design 6: Camille Unknown (current refined) -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-name">6 — Camille Unknown</div>
+      <div class="card-tag">Pixel painterly · Pixelify Sans (actuel raffiné)</div>
+    </div>
+    <div class="screen">
+      <div class="design-camille">
+        <div class="hud"><div class="lvl">Niveau 1 / 2</div><div>Morts : 0</div><div>Temps : 12.4 s</div></div>
+        <div class="title">Adventure Timing</div>
+        <div class="sub">Une nuit sans étoiles à traverser</div>
+        <button class="btn selected">Nouvelle partie</button>
+        <button class="btn">Paramètres</button>
+        <button class="btn">Quitter</button>
+        <div class="inventory">
+          <div class="inv-slot active">💣</div>
+          <div class="inv-slot">🧊</div>
+          <div class="inv-slot">🌐</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-notes"><b>Vibe</b> : direction actuelle peaufinée. Boutons translucides avec liseré pâle, monolithes en transparence derrière.</div>
+  </div>
+
+</div>
+
+</body>
+</html>

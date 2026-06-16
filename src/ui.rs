@@ -21,20 +21,36 @@ use bevy::text::Font;
 use bevy::window::{PrimaryWindow, WindowMode};
 
 // ============================================================ Style ===
+// Direction "papyrus / bois bevel" — palette chaude rustique inspirée de
+// Stardew Valley / Don't Starve, prototypée dans docs/ui-prototypes/.
 
-const OVERLAY_BG: Color = Color::srgba(0.04, 0.06, 0.10, 0.55);
-const TITLE_COLOR: Color = Color::srgb(0.92, 0.94, 1.00);
-const SUBTITLE_COLOR: Color = Color::srgb(0.66, 0.74, 0.86);
-const HINT_COLOR: Color = Color::srgb(0.48, 0.56, 0.68);
-const ACCENT_CYAN: Color = Color::srgb(0.42, 0.78, 0.92);
-const ACCENT_AMBER: Color = Color::srgb(0.91, 0.66, 0.30);
+/// Overlay des menus : sombre wine très semi-transparent pour laisser la
+/// scène passer derrière tout en assurant la lisibilité du papyrus.
+const OVERLAY_BG: Color = Color::srgba(0.18, 0.10, 0.06, 0.60);
 
-const BTN_NORMAL: Color = Color::srgba(0.10, 0.14, 0.22, 0.65);
-const BTN_HOVER: Color = Color::srgba(0.18, 0.26, 0.40, 0.85);
-const BTN_PRESSED: Color = Color::srgba(0.30, 0.50, 0.66, 0.95);
-const BTN_SELECTED: Color = Color::srgba(0.16, 0.30, 0.46, 0.90);
-const BTN_BORDER: Color = Color::srgb(0.20, 0.30, 0.46);
-const BTN_BORDER_SELECTED: Color = Color::srgb(0.42, 0.78, 0.92);
+const PAPYRUS: Color = Color::srgb(0.953, 0.878, 0.706); // #F3E0B4
+const WOOD_LIGHT: Color = Color::srgb(0.847, 0.725, 0.478); // #D8B97A
+const WOOD: Color = Color::srgb(0.776, 0.604, 0.365); // #C69A5D
+const WOOD_DARK: Color = Color::srgb(0.420, 0.231, 0.094); // #6B3B18
+const WOOD_DARKEST: Color = Color::srgb(0.290, 0.176, 0.102); // #4A2D1A
+const CREAM: Color = Color::srgb(1.000, 0.973, 0.878); // #FFF8E0
+const GOLD: Color = Color::srgb(1.000, 0.874, 0.522); // #FFDF85
+
+/// Texte principal sur fond papyrus.
+const TITLE_COLOR: Color = CREAM;
+const SUBTITLE_COLOR: Color = Color::srgb(0.847, 0.725, 0.478);
+const HINT_COLOR: Color = Color::srgb(0.788, 0.690, 0.502);
+const ACCENT_CYAN: Color = GOLD; // l'accent "level" passe en or pour cohérence
+const ACCENT_AMBER: Color = GOLD;
+
+/// Bouton bevel rétro : bois clair par défaut, plus clair en hover,
+/// plus sombre quand enfoncé. Bordure très sombre pour le contraste.
+const BTN_NORMAL: Color = Color::srgb(0.776, 0.604, 0.365); // WOOD
+const BTN_HOVER: Color = Color::srgb(0.847, 0.725, 0.478); // WOOD_LIGHT
+const BTN_PRESSED: Color = Color::srgb(0.604, 0.451, 0.247);
+const BTN_SELECTED: Color = Color::srgb(0.812, 0.671, 0.420);
+const BTN_BORDER: Color = WOOD_DARKEST;
+const BTN_BORDER_SELECTED: Color = GOLD;
 
 // ====================================================== Composants ===
 
@@ -82,6 +98,12 @@ pub enum MenuAction {
 #[derive(Component, Clone, Copy)]
 struct ButtonIndex(usize);
 
+/// Marqueur qui empêche button_interaction de toucher la couleur de
+/// fond. Utile pour les cartes héros (fond papyrus statique, seule
+/// la bordure réagit au hover/selected).
+#[derive(Component)]
+struct LockedBackground;
+
 /// Bouton actuellement sélectionné via clavier ou souris.
 #[derive(Resource, Default)]
 struct MenuSelection(usize);
@@ -90,18 +112,20 @@ struct MenuSelection(usize);
 #[derive(Resource, Default)]
 struct ButtonCount(usize);
 
-/// Polices UI. `display` (Pixelify Sans) pour titres + boutons + tout
-/// le texte hors HUD numérique. `mono` (DejaVu Sans Mono) pour les
-/// chiffres du HUD qui changent souvent : la mono évite que le texte
-/// "danse" à chaque mise à jour.
+/// Polices UI. Direction papyrus :
+/// - `display` (Cinzel Bold) : titres + HUD + cartes héros (gothic serif)
+/// - `regular` (Crimson Pro) : sous-titres, body, descriptions
+/// - `bold` = display pour compat avec le code existant
+/// - `mono` (DejaVu Sans Mono) : pour fallback / chiffres si besoin
 #[derive(Resource)]
 struct UiFont {
-    /// Pixelify Sans Regular — UI principale, lisible et game-y.
+    /// Crimson Pro Regular — texte courant, élégant et lisible.
     regular: Handle<Font>,
-    /// Idem (la police variable sert les deux poids à des tailles
-    /// pixel-art ; on garde le nom pour le code existant).
+    /// Cinzel Bold — titres + boutons + HUD (gothic serif).
     bold: Handle<Font>,
-    /// DejaVu Sans Mono — pour le HUD numérique.
+    /// Idem que bold, alias sémantique.
+    display: Handle<Font>,
+    /// DejaVu Mono — fallback technique.
     mono: Handle<Font>,
 }
 
@@ -123,10 +147,11 @@ impl Plugin for UiPlugin {
         // Charger les polices en build-time pour qu'elles soient dispo
         // dès les premiers Startup systems.
         let asset_server = app.world().resource::<AssetServer>().clone();
-        let pixelify = asset_server.load::<Font>("fonts/PixelifySans-Regular.ttf");
+        let cinzel = asset_server.load::<Font>("fonts/Cinzel-Bold.ttf");
         let ui_font = UiFont {
-            regular: pixelify.clone(),
-            bold: pixelify,
+            regular: asset_server.load("fonts/CrimsonPro-Regular.ttf"),
+            bold: cinzel.clone(),
+            display: cinzel,
             mono: asset_server.load("fonts/DejaVuSansMono.ttf"),
         };
         app.insert_resource(ui_font)
@@ -184,36 +209,37 @@ fn setup_hud(mut commands: Commands, font: Res<UiFont>) {
             },
         ))
         .with_children(|p| {
+            // H4 Gothic serif : Cinzel, accent or, espacements lettres
             p.spawn((
                 HudLevel,
                 TextBundle::from_section(
-                    "Niveau 1",
+                    "Niveau I · II",
                     TextStyle {
-                        font: font.regular.clone(),
+                        font: font.display.clone(),
                         font_size: 22.0,
-                        color: ACCENT_CYAN,
+                        color: GOLD,
                     },
                 ),
             ));
             p.spawn((
                 HudDeaths,
                 TextBundle::from_section(
-                    "Morts : 0",
+                    "Mortes — 0",
                     TextStyle {
-                        font: font.mono.clone(),
-                        font_size: 20.0,
-                        color: HINT_COLOR,
+                        font: font.display.clone(),
+                        font_size: 18.0,
+                        color: CREAM,
                     },
                 ),
             ));
             p.spawn((
                 HudTime,
                 TextBundle::from_section(
-                    "Temps : 0.0 s",
+                    "Temps — 0.0 s",
                     TextStyle {
-                        font: font.mono.clone(),
-                        font_size: 20.0,
-                        color: HINT_COLOR,
+                        font: font.display.clone(),
+                        font_size: 18.0,
+                        color: CREAM,
                     },
                 ),
             ));
@@ -228,14 +254,14 @@ fn update_hud(
     mut level_q: Query<&mut Text, (With<HudLevel>, Without<HudTime>, Without<HudDeaths>)>,
 ) {
     if let Ok(mut t) = deaths_q.get_single_mut() {
-        t.sections[0].value = format!("Morts : {}", stats.deaths);
+        t.sections[0].value = format!("Mortes — {}", stats.deaths);
     }
     if let Ok(mut t) = time_q.get_single_mut() {
-        t.sections[0].value = format!("Temps : {:.1} s", stats.time_seconds);
+        t.sections[0].value = format!("Temps — {:.1} s", stats.time_seconds);
     }
     if let Ok(mut t) = level_q.get_single_mut() {
         t.sections[0].value = format!(
-            "Niveau {} / {}  -  {}",
+            "Niveau {} · {}   {}",
             current_level.0.number(),
             TOTAL_LEVELS,
             current_level.0.label(),
@@ -291,9 +317,9 @@ fn spawn_title(parent: &mut ChildBuilder, font: &UiFont, text: &str) {
         TextBundle::from_section(
             text,
             TextStyle {
-                font: font.bold.clone(),
-                font_size: 72.0,
-                color: TITLE_COLOR,
+                font: font.display.clone(),
+                font_size: 76.0,
+                color: GOLD,
             },
         ),
     ));
@@ -305,7 +331,7 @@ fn spawn_subtitle(parent: &mut ChildBuilder, font: &UiFont, text: &str) {
         TextStyle {
             font: font.regular.clone(),
             font_size: 22.0,
-            color: SUBTITLE_COLOR,
+            color: PAPYRUS,
         },
     ));
 }
@@ -317,14 +343,14 @@ fn spawn_button(
     text: &str,
     action: MenuAction,
 ) {
-    let font_handle = font.bold.clone();
+    let font_handle = font.display.clone();
     spawn_button_with_label(parent, counter, action, move |p| {
         p.spawn(TextBundle::from_section(
             text.to_string(),
             TextStyle {
                 font: font_handle,
-                font_size: 28.0,
-                color: TITLE_COLOR,
+                font_size: 24.0,
+                color: WOOD_DARKEST,
             },
         ));
     });
@@ -345,11 +371,11 @@ fn spawn_button_with_label(
             ButtonBundle {
                 style: Style {
                     min_width: Val::Px(340.0),
-                    height: Val::Px(54.0),
+                    height: Val::Px(56.0),
                     padding: UiRect::axes(Val::Px(32.0), Val::Px(8.0)),
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
-                    border: UiRect::all(Val::Px(2.0)),
+                    border: UiRect::all(Val::Px(3.0)),
                     column_gap: Val::Px(16.0),
                     ..default()
                 },
@@ -367,9 +393,9 @@ fn spawn_dynamic_label(parent: &mut ChildBuilder, font: &UiFont, kind: DynamicLa
         TextBundle::from_section(
             "...",
             TextStyle {
-                font: font.bold.clone(),
-                font_size: 28.0,
-                color: ACCENT_CYAN,
+                font: font.display.clone(),
+                font_size: 22.0,
+                color: GOLD,
             },
         ),
     ));
@@ -579,10 +605,13 @@ fn spawn_hero_card(
     let tagline = hero.tagline();
     let description = hero.description();
     let sprite = asset_server.load(hero.preview_path());
+    // HC5 Cadre bois clouté : carte papyrus avec bordure bois épaisse +
+    // 4 nails simulés par des dots en absolu dans les coins.
     parent
         .spawn((
             MenuAction::SelectHero(hero),
             ButtonIndex(index),
+            LockedBackground,
             ButtonBundle {
                 style: Style {
                     width: Val::Px(240.0),
@@ -590,50 +619,90 @@ fn spawn_hero_card(
                     flex_direction: FlexDirection::Column,
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::FlexStart,
-                    padding: UiRect::all(Val::Px(16.0)),
+                    padding: UiRect::all(Val::Px(18.0)),
                     row_gap: Val::Px(10.0),
-                    border: UiRect::all(Val::Px(2.0)),
+                    border: UiRect::all(Val::Px(5.0)),
                     ..default()
                 },
-                background_color: BTN_NORMAL.into(),
-                border_color: BTN_BORDER.into(),
+                background_color: PAPYRUS.into(),
+                border_color: WOOD_DARK.into(),
                 ..default()
             },
         ))
         .with_children(|p| {
-            // Sprite preview : on prend le frame 0 du sprite sheet via
-            // Sprite::rect. Sprite sheet 168x36, frame 0 = (0,0,24,36).
-            p.spawn(ImageBundle {
+            // 4 nails dans les coins (mini cercles d'ombre)
+            for (top, left, right, bottom) in [
+                (Some(2.0), Some(2.0), None, None),
+                (Some(2.0), None, Some(2.0), None),
+                (None, Some(2.0), None, Some(2.0)),
+                (None, None, Some(2.0), Some(2.0)),
+            ] {
+                p.spawn(NodeBundle {
+                    style: Style {
+                        position_type: PositionType::Absolute,
+                        top: top.map(Val::Px).unwrap_or(Val::Auto),
+                        left: left.map(Val::Px).unwrap_or(Val::Auto),
+                        right: right.map(Val::Px).unwrap_or(Val::Auto),
+                        bottom: bottom.map(Val::Px).unwrap_or(Val::Auto),
+                        width: Val::Px(8.0),
+                        height: Val::Px(8.0),
+                        border: UiRect::all(Val::Px(1.0)),
+                        ..default()
+                    },
+                    background_color: WOOD_DARKEST.into(),
+                    border_color: WOOD_LIGHT.into(),
+                    ..default()
+                });
+            }
+
+            // Sprite preview encadré
+            p.spawn(NodeBundle {
                 style: Style {
-                    width: Val::Px(72.0),
-                    height: Val::Px(108.0),
+                    width: Val::Px(76.0),
+                    height: Val::Px(112.0),
+                    border: UiRect::all(Val::Px(2.0)),
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    margin: UiRect::top(Val::Px(4.0)),
                     ..default()
                 },
-                image: UiImage::new(sprite),
+                background_color: Color::srgba(0.290, 0.176, 0.102, 0.08).into(),
+                border_color: WOOD_DARK.into(),
                 ..default()
+            })
+            .with_children(|p| {
+                p.spawn(ImageBundle {
+                    style: Style {
+                        width: Val::Px(60.0),
+                        height: Val::Px(90.0),
+                        ..default()
+                    },
+                    image: UiImage::new(sprite),
+                    ..default()
+                });
             });
             p.spawn(TextBundle::from_section(
                 label,
                 TextStyle {
-                    font: font.bold.clone(),
-                    font_size: 26.0,
-                    color: TITLE_COLOR,
+                    font: font.display.clone(),
+                    font_size: 22.0,
+                    color: WOOD_DARKEST,
                 },
             ));
             p.spawn(TextBundle::from_section(
                 tagline,
                 TextStyle {
                     font: font.regular.clone(),
-                    font_size: 16.0,
-                    color: ACCENT_CYAN,
+                    font_size: 15.0,
+                    color: WOOD_DARK,
                 },
             ));
             p.spawn(TextBundle::from_section(
                 description,
                 TextStyle {
                     font: font.regular.clone(),
-                    font_size: 14.0,
-                    color: SUBTITLE_COLOR,
+                    font_size: 13.0,
+                    color: WOOD_DARK,
                 },
             ));
         });
@@ -946,6 +1015,7 @@ fn button_interaction(
             &ButtonIndex,
             &mut BackgroundColor,
             &mut BorderColor,
+            Has<LockedBackground>,
         ),
         Changed<Interaction>,
     >,
@@ -959,10 +1029,12 @@ fn button_interaction(
     mut save_data: ResMut<SaveData>,
     mut current_level: ResMut<crate::world::CurrentLevel>,
 ) {
-    for (interaction, action, index, mut bg, mut border) in &mut q {
+    for (interaction, action, index, mut bg, mut border, locked_bg) in &mut q {
         match *interaction {
             Interaction::Pressed => {
-                *bg = BTN_PRESSED.into();
+                if !locked_bg {
+                    *bg = BTN_PRESSED.into();
+                }
                 *border = BTN_BORDER_SELECTED.into();
                 selection.0 = index.0;
                 trigger_action(
@@ -979,15 +1051,21 @@ fn button_interaction(
             }
             Interaction::Hovered => {
                 selection.0 = index.0;
-                *bg = BTN_HOVER.into();
+                if !locked_bg {
+                    *bg = BTN_HOVER.into();
+                }
                 *border = BTN_BORDER_SELECTED.into();
             }
             Interaction::None => {
                 if index.0 == selection.0 {
-                    *bg = BTN_SELECTED.into();
+                    if !locked_bg {
+                        *bg = BTN_SELECTED.into();
+                    }
                     *border = BTN_BORDER_SELECTED.into();
                 } else {
-                    *bg = BTN_NORMAL.into();
+                    if !locked_bg {
+                        *bg = BTN_NORMAL.into();
+                    }
                     *border = BTN_BORDER.into();
                 }
             }
@@ -1005,6 +1083,7 @@ fn keyboard_navigation(
         &ButtonIndex,
         &mut BackgroundColor,
         &mut BorderColor,
+        Has<LockedBackground>,
     )>,
     mut next: ResMut<NextState<GameState>>,
     state: Res<State<GameState>>,
@@ -1038,12 +1117,16 @@ fn keyboard_navigation(
     }
 
     if prev != selection.0 {
-        for (_, index, mut bg, mut border) in &mut q {
+        for (_, index, mut bg, mut border, locked_bg) in &mut q {
             if index.0 == selection.0 {
-                *bg = BTN_SELECTED.into();
+                if !locked_bg {
+                    *bg = BTN_SELECTED.into();
+                }
                 *border = BTN_BORDER_SELECTED.into();
             } else {
-                *bg = BTN_NORMAL.into();
+                if !locked_bg {
+                    *bg = BTN_NORMAL.into();
+                }
                 *border = BTN_BORDER.into();
             }
         }
@@ -1052,7 +1135,7 @@ fn keyboard_navigation(
     let activate = keys.just_pressed(KeyCode::Enter) || keys.just_pressed(KeyCode::Space);
     let shift_held = keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight);
     if activate {
-        for (action, index, _, _) in &mut q {
+        for (action, index, _, _, _) in &mut q {
             if index.0 == selection.0 {
                 let action = match (*action, shift_held) {
                     (MenuAction::AdjustMaster(v), true) => MenuAction::AdjustMaster(-v),
