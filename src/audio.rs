@@ -21,6 +21,9 @@ struct Sfx {
 struct MusicTracks {
     level_1: Handle<AudioSource>,
     level_2: Handle<AudioSource>,
+    level_3: Handle<AudioSource>,
+    level_4: Handle<AudioSource>,
+    level_5: Handle<AudioSource>,
 }
 
 #[derive(Component)]
@@ -62,6 +65,9 @@ impl Plugin for AudioPlugin {
         let music = MusicTracks {
             level_1: asset_server.load("music/level_1.wav"),
             level_2: asset_server.load("music/level_2.wav"),
+            level_3: asset_server.load("music/level_3.wav"),
+            level_4: asset_server.load("music/level_4.wav"),
+            level_5: asset_server.load("music/level_5.wav"),
         };
         app.insert_resource(sfx)
             .insert_resource(music)
@@ -177,6 +183,9 @@ fn music_handle(tracks: &MusicTracks, level: LevelId) -> Handle<AudioSource> {
     match level {
         LevelId::PinkSunset => tracks.level_1.clone(),
         LevelId::NightForest => tracks.level_2.clone(),
+        LevelId::AmberRuins => tracks.level_3.clone(),
+        LevelId::Sanctuary => tracks.level_4.clone(),
+        LevelId::Dawn => tracks.level_5.clone(),
     }
 }
 

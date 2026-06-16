@@ -54,6 +54,34 @@ impl Default for Player {
     }
 }
 
+/// PV du joueur + cooldown d'invincibilité post-coup (i-frames).
+#[derive(Component, Debug)]
+pub struct PlayerHp {
+    pub current: u32,
+    pub max: u32,
+    pub hit_invuln: f32,
+}
+
+impl PlayerHp {
+    pub fn full(max: u32) -> Self {
+        Self {
+            current: max,
+            max,
+            hit_invuln: 0.0,
+        }
+    }
+}
+
+/// Évènement émis quand le joueur prend un coup (mais ne meurt pas
+/// forcément). Si HP tombe à 0, on émet aussi PlayerDied.
+#[derive(Event, Debug)]
+pub struct PlayerHit {
+    pub damage: u32,
+}
+
+/// Durée d'invincibilité post-coup pour éviter de chain-tap les dégâts.
+pub const HIT_INVULN: f32 = 0.7;
+
 #[derive(Component)]
 pub struct PlayerController {
     pub coyote_timer: f32,
@@ -121,7 +149,8 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_player)
+        app.add_event::<PlayerHit>()
+            .add_systems(Startup, spawn_player)
             .add_systems(
                 Update,
                 (
@@ -133,7 +162,16 @@ impl Plugin for PlayerPlugin {
                     .before(PhysicsSet)
                     .run_if(in_state(GameState::Playing)),
             )
-            .add_systems(Update, (handle_death, animate_player, update_hero_sprite));
+            .add_systems(
+                Update,
+                (
+                    handle_player_hit,
+                    handle_death,
+                    animate_player,
+                    update_hero_sprite,
+                    tick_hp_invuln,
+                ),
+            );
     }
 }
 
@@ -157,6 +195,7 @@ fn spawn_player(
         Player::default(),
         PlayerController::default(),
         PlayerAnimation::default(),
+        PlayerHp::full(selected_hero.0.max_hp()),
         Velocity::default(),
         Collider::new(PLAYER_SIZE),
         Grounded::default(),
@@ -177,9 +216,10 @@ fn spawn_player(
     ));
 }
 
+#[allow(clippy::too_many_arguments)]
 fn handle_death(
     mut deaths: EventReader<PlayerDied>,
-    mut player: Query<(&mut Transform, &mut Velocity, &mut PlayerController), With<Player>>,
+    mut player: Query<(&mut Transform, &mut Velocity, &mut PlayerController, &mut PlayerHp), With<Player>>,
     respawn: Res<RespawnPoint>,
     selected_hero: Res<SelectedHero>,
     mut effects: ResMut<ActiveEffects>,
@@ -191,13 +231,15 @@ fn handle_death(
     }
     deaths.clear();
 
-    let Ok((mut transform, mut velocity, mut ctrl)) = player.get_single_mut() else {
+    let Ok((mut transform, mut velocity, mut ctrl, mut hp)) = player.get_single_mut() else {
         return;
     };
 
     transform.translation = respawn.0.extend(transform.translation.z);
     velocity.0 = Vec2::ZERO;
     *ctrl = PlayerController::default();
+    hp.current = hp.max;
+    hp.hit_invuln = 0.0;
     stats.deaths += 1;
     shake.add(0.65);
 
@@ -209,18 +251,52 @@ fn handle_death(
 }
 
 /// Switche la texture du joueur quand `SelectedHero` change (depuis
-/// l'écran de sélection).
+/// l'écran de sélection). Met aussi à jour les PV max.
 fn update_hero_sprite(
     selected_hero: Res<SelectedHero>,
     asset_server: Res<AssetServer>,
-    mut q: Query<&mut Handle<Image>, With<Player>>,
+    mut q: Query<(&mut Handle<Image>, &mut PlayerHp), With<Player>>,
 ) {
     if !selected_hero.is_changed() {
         return;
     }
     let new_handle = asset_server.load(selected_hero.0.sprite_path());
-    for mut h in &mut q {
+    let new_max = selected_hero.0.max_hp();
+    for (mut h, mut hp) in &mut q {
         *h = new_handle.clone();
+        hp.max = new_max;
+        hp.current = new_max;
+    }
+}
+
+/// Consomme PlayerHit : décrémente les PV, applique invul, si HP=0 émet
+/// PlayerDied.
+fn handle_player_hit(
+    mut events: EventReader<PlayerHit>,
+    mut q: Query<&mut PlayerHp, With<Player>>,
+    mut died: EventWriter<PlayerDied>,
+    mut shake: ResMut<ScreenShake>,
+) {
+    let Ok(mut hp) = q.get_single_mut() else {
+        return;
+    };
+    for ev in events.read() {
+        if hp.hit_invuln > 0.0 {
+            continue;
+        }
+        hp.current = hp.current.saturating_sub(ev.damage);
+        hp.hit_invuln = HIT_INVULN;
+        shake.add(0.35);
+        if hp.current == 0 {
+            died.send(PlayerDied);
+        }
+    }
+}
+
+fn tick_hp_invuln(time: Res<Time>, mut q: Query<&mut PlayerHp>) {
+    let dt = time.delta_seconds();
+    for mut hp in &mut q {
+        hp.hit_invuln = (hp.hit_invuln - dt).max(0.0);
     }
 }
 

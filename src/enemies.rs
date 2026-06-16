@@ -6,8 +6,8 @@ use crate::audio::PlayerJumped;
 use crate::effects::ScreenShake;
 use crate::items::ActiveEffects;
 use crate::physics::{Collider, Velocity};
-use crate::player::{Player, PlayerController};
-use crate::states::{GameState, PlayerDied};
+use crate::player::{Player, PlayerController, PlayerHit};
+use crate::states::GameState;
 use crate::weapons::{AttackHitbox, Projectile};
 use bevy::prelude::*;
 
@@ -17,6 +17,8 @@ pub enum EnemyKind {
     Crawler,
     /// Vole en sinusoïde Y, suit le joueur X.
     Flyer,
+    /// Statique, tire un projectile toutes les ~2 s vers le joueur.
+    Spitter,
 }
 
 impl EnemyKind {
@@ -24,6 +26,7 @@ impl EnemyKind {
         match self {
             EnemyKind::Crawler => "sprites/enemy_crawler.png",
             EnemyKind::Flyer => "sprites/enemy_flyer.png",
+            EnemyKind::Spitter => "sprites/enemy_spitter.png",
         }
     }
 
@@ -31,6 +34,7 @@ impl EnemyKind {
         match self {
             EnemyKind::Crawler => Vec2::new(20.0, 14.0),
             EnemyKind::Flyer => Vec2::new(18.0, 18.0),
+            EnemyKind::Spitter => Vec2::new(24.0, 20.0),
         }
     }
 }
@@ -64,6 +68,8 @@ impl Plugin for EnemiesPlugin {
                 tick_enemy_state,
                 ai_crawler,
                 ai_flyer,
+                ai_spitter,
+                tick_enemy_projectiles,
                 check_stomp_or_damage,
                 apply_attack_hits,
                 apply_projectile_hits,
@@ -74,36 +80,20 @@ impl Plugin for EnemiesPlugin {
     }
 }
 
+/// Projectile tiré par un Spitter. Tue le joueur au contact (sauf
+/// invul). Se despawn au contact d'un solide ou après 3 s.
+#[derive(Component)]
+pub struct EnemyProjectile {
+    pub remaining: f32,
+}
+
 fn spawn_enemies(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // Distribution sur le niveau de test.
-    spawn_enemy(
-        &mut commands,
-        &asset_server,
-        EnemyKind::Crawler,
-        Vec2::new(-100.0, -260.0),
-        -400.0..200.0,
-    );
-    spawn_enemy(
-        &mut commands,
-        &asset_server,
-        EnemyKind::Crawler,
-        Vec2::new(700.0, -260.0),
-        500.0..900.0,
-    );
-    spawn_enemy(
-        &mut commands,
-        &asset_server,
-        EnemyKind::Flyer,
-        Vec2::new(450.0, 100.0),
-        300.0..900.0,
-    );
-    spawn_enemy(
-        &mut commands,
-        &asset_server,
-        EnemyKind::Flyer,
-        Vec2::new(1500.0, 320.0),
-        1300.0..1900.0,
-    );
+    spawn_enemy(&mut commands, &asset_server, EnemyKind::Crawler, Vec2::new(-100.0, -260.0), -400.0..200.0);
+    spawn_enemy(&mut commands, &asset_server, EnemyKind::Crawler, Vec2::new(700.0, -260.0), 500.0..900.0);
+    spawn_enemy(&mut commands, &asset_server, EnemyKind::Flyer, Vec2::new(450.0, 100.0), 300.0..900.0);
+    spawn_enemy(&mut commands, &asset_server, EnemyKind::Flyer, Vec2::new(1500.0, 320.0), 1300.0..1900.0);
+    spawn_enemy(&mut commands, &asset_server, EnemyKind::Spitter, Vec2::new(880.0, 60.0), 0.0..0.0);
+    spawn_enemy(&mut commands, &asset_server, EnemyKind::Spitter, Vec2::new(1080.0, 360.0), 0.0..0.0);
 }
 
 fn spawn_enemy(
@@ -117,6 +107,7 @@ fn spawn_enemy(
     let hp = match kind {
         EnemyKind::Crawler => 2,
         EnemyKind::Flyer => 1,
+        EnemyKind::Spitter => 3,
     };
     commands.spawn((
         Enemy {
@@ -217,7 +208,7 @@ fn check_stomp_or_damage(
     >,
     mut enemies: Query<(Entity, &Transform, &Collider, &mut Enemy), Without<Player>>,
     effects: Res<ActiveEffects>,
-    mut died: EventWriter<PlayerDied>,
+    mut hit: EventWriter<PlayerHit>,
     mut shake: ResMut<ScreenShake>,
     mut jumped: EventWriter<PlayerJumped>,
 ) {
@@ -247,7 +238,7 @@ fn check_stomp_or_damage(
                 commands.entity(entity).despawn();
             }
         } else if effects.invincible <= 0.0 {
-            died.send(PlayerDied);
+            hit.send(PlayerHit { damage: 1 });
             return;
         }
     }
@@ -297,7 +288,83 @@ fn apply_projectile_hits(
     }
 }
 
-/// Vide pour l'instant : utilisé plus tard pour les animations de mort
-/// (poof particles, fade out). Les enemies sont déjà despawn dans les
-/// systèmes d'attaque.
+/// IA du Spitter : tire un projectile vers le joueur tous les ~2 s.
+fn ai_spitter(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    time: Res<Time>,
+    mut q: Query<(&mut Enemy, &Transform), Without<Player>>,
+    player: Query<&Transform, With<Player>>,
+) {
+    let Ok(player_t) = player.get_single() else {
+        return;
+    };
+    for (mut e, t) in &mut q {
+        if e.kind != EnemyKind::Spitter {
+            continue;
+        }
+        // Phase utilisée comme cooldown : tire tous les 2.0 s
+        if (e.phase % 2.0) < time.delta_seconds() {
+            let dir = (player_t.translation.truncate() - t.translation.truncate()).normalize_or_zero();
+            spawn_enemy_projectile(
+                &mut commands,
+                &asset_server,
+                t.translation.truncate() + dir * 18.0,
+                dir * 240.0,
+            );
+        }
+    }
+}
+
+fn spawn_enemy_projectile(
+    commands: &mut Commands,
+    asset_server: &AssetServer,
+    pos: Vec2,
+    velocity: Vec2,
+) {
+    let size = Vec2::splat(12.0);
+    commands.spawn((
+        EnemyProjectile { remaining: 3.0 },
+        Velocity(velocity),
+        crate::physics::NoGravity,
+        Collider::new(size),
+        SpriteBundle {
+            texture: asset_server.load("sprites/enemy_projectile.png"),
+            sprite: Sprite {
+                custom_size: Some(size),
+                ..default()
+            },
+            transform: Transform::from_translation(pos.extend(1.5)),
+            ..default()
+        },
+    ));
+}
+
+fn tick_enemy_projectiles(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut projectiles: Query<(Entity, &Transform, &Collider, &mut EnemyProjectile)>,
+    player: Query<(&Transform, &Collider), With<Player>>,
+    effects: Res<ActiveEffects>,
+    mut hit: EventWriter<PlayerHit>,
+) {
+    let dt = time.delta_seconds();
+    let Ok((p_t, p_c)) = player.get_single() else {
+        return;
+    };
+    for (entity, t, c, mut proj) in &mut projectiles {
+        proj.remaining -= dt;
+        if proj.remaining <= 0.0 {
+            commands.entity(entity).despawn();
+            continue;
+        }
+        if aabb_overlap(t.translation, c.size, p_t.translation, p_c.size)
+            && effects.invincible <= 0.0
+        {
+            hit.send(PlayerHit { damage: 1 });
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
 fn despawn_dead() {}

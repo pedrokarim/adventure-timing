@@ -1178,6 +1178,218 @@ fn make_items() {
     save(&hourglass, "assets/sprites/item_hourglass.png");
 }
 
+// =================================================== Palette niveau ===
+
+#[derive(Clone, Copy)]
+struct LevelPalette {
+    suffix: &'static str,
+    dirt: Rgba<u8>,
+    dirt_dk: Rgba<u8>,
+    dirt_lt: Rgba<u8>,
+    moss: Rgba<u8>,
+    moss_dk: Rgba<u8>,
+    moss_lt: Rgba<u8>,
+    stone: Rgba<u8>,
+    stone_dk: Rgba<u8>,
+    stone_lt: Rgba<u8>,
+    accent: Rgba<u8>,
+    sky_high: Rgba<u8>,
+    sky_low: Rgba<u8>,
+    mountain_far: Rgba<u8>,
+    mountain_mid: Rgba<u8>,
+    mountain_near: Rgba<u8>,
+}
+
+const PALETTE_AMBER: LevelPalette = LevelPalette {
+    suffix: "_amber",
+    dirt: Rgba([60, 36, 18, 255]),
+    dirt_dk: Rgba([36, 20, 12, 255]),
+    dirt_lt: Rgba([100, 64, 30, 255]),
+    moss: Rgba([170, 96, 30, 255]),
+    moss_dk: Rgba([122, 64, 18, 255]),
+    moss_lt: Rgba([232, 168, 76, 255]),
+    stone: Rgba([108, 76, 40, 255]),
+    stone_dk: Rgba([56, 36, 14, 255]),
+    stone_lt: Rgba([170, 124, 70, 255]),
+    accent: Rgba([252, 220, 140, 255]),
+    sky_high: Rgba([76, 38, 20, 255]),
+    sky_low: Rgba([180, 92, 32, 255]),
+    mountain_far: Rgba([124, 64, 28, 255]),
+    mountain_mid: Rgba([94, 46, 18, 255]),
+    mountain_near: Rgba([56, 30, 14, 255]),
+};
+
+const PALETTE_SANCTUARY: LevelPalette = LevelPalette {
+    suffix: "_sanctuary",
+    dirt: Rgba([22, 14, 18, 255]),
+    dirt_dk: Rgba([10, 6, 10, 255]),
+    dirt_lt: Rgba([46, 28, 36, 255]),
+    moss: Rgba([78, 24, 32, 255]),
+    moss_dk: Rgba([42, 12, 18, 255]),
+    moss_lt: Rgba([148, 36, 48, 255]),
+    stone: Rgba([42, 30, 38, 255]),
+    stone_dk: Rgba([20, 14, 22, 255]),
+    stone_lt: Rgba([72, 52, 64, 255]),
+    accent: Rgba([220, 64, 80, 255]),
+    sky_high: Rgba([8, 6, 12, 255]),
+    sky_low: Rgba([24, 12, 18, 255]),
+    mountain_far: Rgba([28, 18, 26, 255]),
+    mountain_mid: Rgba([18, 12, 18, 255]),
+    mountain_near: Rgba([8, 4, 8, 255]),
+};
+
+const PALETTE_DAWN: LevelPalette = LevelPalette {
+    suffix: "_dawn",
+    dirt: Rgba([110, 110, 116, 255]),
+    dirt_dk: Rgba([60, 60, 66, 255]),
+    dirt_lt: Rgba([164, 164, 168, 255]),
+    moss: Rgba([180, 180, 188, 255]),
+    moss_dk: Rgba([130, 130, 138, 255]),
+    moss_lt: Rgba([220, 220, 226, 255]),
+    stone: Rgba([138, 138, 146, 255]),
+    stone_dk: Rgba([78, 78, 84, 255]),
+    stone_lt: Rgba([200, 200, 206, 255]),
+    accent: Rgba([255, 255, 255, 255]),
+    sky_high: Rgba([222, 222, 228, 255]),
+    sky_low: Rgba([158, 158, 168, 255]),
+    mountain_far: Rgba([142, 142, 150, 255]),
+    mountain_mid: Rgba([108, 108, 118, 255]),
+    mountain_near: Rgba([70, 70, 80, 255]),
+};
+
+fn make_palette_tiles(p: &LevelPalette) {
+    // Ground
+    let mut img = RgbaImage::from_pixel(32, 32, p.dirt);
+    for (x, y, c) in [
+        (3, 4, p.dirt_dk), (11, 2, p.dirt_dk), (18, 6, p.dirt_lt), (25, 3, p.dirt_lt),
+        (5, 12, p.dirt_lt), (14, 14, p.dirt_dk), (22, 11, p.dirt_dk), (28, 16, p.dirt_lt),
+        (9, 19, p.dirt_dk), (20, 20, p.dirt_lt), (3, 17, p.dirt_dk),
+        (7, 25, p.dirt_dk), (17, 27, p.dirt_lt), (25, 24, p.dirt_dk), (12, 29, p.dirt_dk),
+    ] {
+        put(&mut img, x, y, c);
+        put(&mut img, x + 1, y, c);
+    }
+    put(&mut img, 9, 8, p.accent);
+    put(&mut img, 23, 22, p.accent);
+    save(&img, &format!("assets/sprites/tile_ground{}.png", p.suffix));
+
+    // Grass strip
+    let mut grass = RgbaImage::from_pixel(32, 10, TR);
+    let heights = [3i32, 5, 2, 4, 6, 3, 5, 4, 2, 5, 3, 4, 6, 3, 5, 4,
+                   3, 5, 2, 4, 6, 3, 5, 4, 2, 5, 3, 4, 6, 3, 5, 4];
+    for x in 0..32 {
+        let top = heights[x as usize].min(6);
+        for dy in 0..(7 - top) {
+            put(&mut grass, x, top + dy, p.moss);
+        }
+        put(&mut grass, x, top, p.moss_lt);
+    }
+    hline(&mut grass, 0, 7, 32, p.moss_dk);
+    rect(&mut grass, 0, 8, 32, 2, p.dirt);
+    save(&grass, &format!("assets/sprites/tile_grass{}.png", p.suffix));
+
+    // Platform (briques)
+    let mut platform = RgbaImage::from_pixel(32, 32, p.stone);
+    hline(&mut platform, 0, 0, 32, p.stone_lt);
+    hline(&mut platform, 0, 1, 32, p.stone);
+    hline(&mut platform, 0, 8, 32, p.stone_dk);
+    vline(&mut platform, 12, 0, 9, p.stone_dk);
+    vline(&mut platform, 24, 0, 9, p.stone_dk);
+    hline(&mut platform, 0, 16, 32, p.stone_dk);
+    vline(&mut platform, 6, 9, 8, p.stone_dk);
+    vline(&mut platform, 18, 9, 8, p.stone_dk);
+    vline(&mut platform, 30, 9, 8, p.stone_dk);
+    hline(&mut platform, 0, 24, 32, p.stone_dk);
+    vline(&mut platform, 12, 17, 8, p.stone_dk);
+    vline(&mut platform, 24, 17, 8, p.stone_dk);
+    vline(&mut platform, 6, 25, 7, p.stone_dk);
+    vline(&mut platform, 18, 25, 7, p.stone_dk);
+    vline(&mut platform, 30, 25, 7, p.stone_dk);
+    hline(&mut platform, 0, 31, 32, p.stone_dk);
+    put(&mut platform, 4, 3, p.stone_lt);
+    put(&mut platform, 20, 11, p.stone_lt);
+    put(&mut platform, 8, 19, p.stone_lt);
+    put(&mut platform, 26, 27, p.stone_lt);
+    save(&platform, &format!("assets/sprites/tile_platform{}.png", p.suffix));
+
+    // Wall
+    let mut wall = RgbaImage::from_pixel(32, 32, p.stone_dk);
+    for row in 0..4 {
+        let y = row * 8;
+        let offset = if row % 2 == 0 { 0 } else { 8 };
+        for col in 0..4 {
+            let x = col * 8 + offset;
+            if x >= 32 { continue; }
+            rect(&mut wall, x + 1, y + 1, 6, 6, p.stone);
+            put(&mut wall, x + 1, y + 1, p.stone_lt);
+        }
+    }
+    save(&wall, &format!("assets/sprites/tile_wall{}.png", p.suffix));
+}
+
+fn make_palette_parallax(p: &LevelPalette) {
+    // Back : ciel gradient + montagnes lointaines
+    let mut back = RgbaImage::new(512, 320);
+    for y in 0..320 {
+        let t = y as f32 / 320.0;
+        let r = p.sky_high.0[0] as f32 * (1.0 - t) + p.sky_low.0[0] as f32 * t;
+        let g = p.sky_high.0[1] as f32 * (1.0 - t) + p.sky_low.0[1] as f32 * t;
+        let b = p.sky_high.0[2] as f32 * (1.0 - t) + p.sky_low.0[2] as f32 * t;
+        for x in 0..512 {
+            back.put_pixel(x, y, Rgba([r as u8, g as u8, b as u8, 255]));
+        }
+    }
+    // Étoiles / particules
+    for i in 0..30 {
+        let x = ((i as f32 * 137.5) as i32) % 510 + 1;
+        let y = ((i as f32 * 71.3) as i32) % 200 + 10;
+        put(&mut back, x, y, p.accent);
+    }
+    // Crêtes lointaines
+    let far_peaks = [
+        (0i32, 200i32), (40, 230), (80, 210), (120, 250), (160, 220),
+        (200, 240), (240, 200), (280, 230), (320, 215), (360, 250),
+        (400, 210), (440, 235), (472, 220), (512, 240),
+    ];
+    for w in far_peaks.windows(2) {
+        let (x0, y0) = w[0]; let (x1, y1) = w[1];
+        let dx = x1 - x0;
+        for px in 0..dx {
+            let t = px as f32 / dx as f32;
+            let y_top = (y0 as f32 * (1.0 - t) + y1 as f32 * t) as i32;
+            rect(&mut back, x0 + px, y_top, 1, 320 - y_top, p.mountain_far);
+        }
+    }
+    save(&back, &format!("assets/sprites/parallax_back{}.png", p.suffix));
+
+    // Mid
+    let mut mid = RgbaImage::from_pixel(512, 260, TR);
+    let mid_peaks = [
+        (0i32, 130i32), (60, 175), (130, 130), (200, 180), (270, 140),
+        (340, 175), (410, 130), (470, 170), (512, 140),
+    ];
+    for w in mid_peaks.windows(2) {
+        let (x0, y0) = w[0]; let (x1, y1) = w[1];
+        let dx = x1 - x0;
+        for px in 0..dx {
+            let t = px as f32 / dx as f32;
+            let y_top = (y0 as f32 * (1.0 - t) + y1 as f32 * t) as i32;
+            rect(&mut mid, x0 + px, y_top, 1, 260 - y_top, p.mountain_mid);
+        }
+    }
+    save(&mid, &format!("assets/sprites/parallax_mid{}.png", p.suffix));
+
+    // Front
+    let mut front = RgbaImage::from_pixel(512, 180, TR);
+    rect(&mut front, 0, 110, 512, 70, p.mountain_near);
+    // Brins
+    for x in (0..512).step_by(3) {
+        let h = ((x as f32 * 0.12).sin().abs() * 4.0 + 1.0) as i32;
+        rect(&mut front, x, 110 - h, 1, h, p.moss);
+    }
+    save(&front, &format!("assets/sprites/parallax_front{}.png", p.suffix));
+}
+
 // =================================================== Forest tiles ===
 
 const FOREST_DIRT: Rgba<u8> = Rgba([24, 36, 46, 255]);
@@ -1345,6 +1557,52 @@ fn make_forest_parallax() {
 
 // ========================================================= Enemies ===
 
+fn make_spitter_and_projectile() {
+    // Spitter 24x20 : champignon trapu avec bouche au centre
+    let mut img = RgbaImage::from_pixel(24, 20, TR);
+    // Chapeau
+    for row in 0..8 {
+        let half = match row {
+            0 | 7 => 5,
+            1 | 6 => 8,
+            _ => 10,
+        };
+        let y = row;
+        rect(&mut img, 12 - half, y, half * 2, 1, AMBER_DK);
+    }
+    // Highlight
+    hline(&mut img, 6, 1, 12, AMBER);
+    // Tronc
+    rect(&mut img, 9, 8, 6, 8, CLOAK);
+    rect(&mut img, 8, 9, 1, 6, CLOAK);
+    rect(&mut img, 15, 9, 1, 6, CLOAK);
+    // Bouche (s'ouvre pour cracher)
+    rect(&mut img, 10, 11, 4, 3, EYE);
+    put(&mut img, 11, 12, AMBER_BRIGHT);
+    // Yeux
+    put(&mut img, 9, 5, AMBER_BRIGHT);
+    put(&mut img, 14, 5, AMBER_BRIGHT);
+    // Pieds
+    rect(&mut img, 8, 16, 8, 4, CLOAK_DK);
+    save(&img, "assets/sprites/enemy_spitter.png");
+
+    // Projectile 12x12 : sphère ambre brûlante
+    let mut proj = RgbaImage::from_pixel(12, 12, TR);
+    for row in 0..10 {
+        let half = match row {
+            0 | 9 => 2,
+            1 | 8 => 3,
+            _ => 4,
+        };
+        let y = 1 + row;
+        rect(&mut proj, 6 - half, y, half * 2, 1, AMBER_DK);
+    }
+    rect(&mut proj, 4, 4, 4, 4, AMBER);
+    put(&mut proj, 5, 5, AMBER_BRIGHT);
+    put(&mut proj, 6, 5, AMBER_BRIGHT);
+    save(&proj, "assets/sprites/enemy_projectile.png");
+}
+
 fn make_enemies() {
     // Crawler 20x14 : petite araignée/insecte sombre avec yeux cyan
     let mut crawler = RgbaImage::from_pixel(20, 14, TR);
@@ -1490,7 +1748,12 @@ fn main() {
     make_throwables();
     make_projectile_magic();
     make_enemies();
+    make_spitter_and_projectile();
     make_forest_tiles();
     make_forest_parallax();
+    for palette in [&PALETTE_AMBER, &PALETTE_SANCTUARY, &PALETTE_DAWN] {
+        make_palette_tiles(palette);
+        make_palette_parallax(palette);
+    }
     println!("Assets générés dans assets/sprites/");
 }

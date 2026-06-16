@@ -8,13 +8,16 @@ use bevy::prelude::*;
 
 pub const PLAYER_SPAWN: Vec2 = Vec2::new(-600.0, -100.0);
 
-pub const TOTAL_LEVELS: u32 = 2;
+pub const TOTAL_LEVELS: u32 = 5;
 
 #[derive(Resource, Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum LevelId {
     #[default]
     PinkSunset,
     NightForest,
+    AmberRuins,
+    Sanctuary,
+    Dawn,
 }
 
 impl LevelId {
@@ -22,6 +25,9 @@ impl LevelId {
         match self {
             LevelId::PinkSunset => 1,
             LevelId::NightForest => 2,
+            LevelId::AmberRuins => 3,
+            LevelId::Sanctuary => 4,
+            LevelId::Dawn => 5,
         }
     }
 
@@ -29,13 +35,19 @@ impl LevelId {
         match self {
             LevelId::PinkSunset => "Au commencement",
             LevelId::NightForest => "Foret silencieuse",
+            LevelId::AmberRuins => "Ruines d'ambre",
+            LevelId::Sanctuary => "Sanctuaire",
+            LevelId::Dawn => "Aurore",
         }
     }
 
     pub fn next(self) -> Option<LevelId> {
         match self {
             LevelId::PinkSunset => Some(LevelId::NightForest),
-            LevelId::NightForest => None,
+            LevelId::NightForest => Some(LevelId::AmberRuins),
+            LevelId::AmberRuins => Some(LevelId::Sanctuary),
+            LevelId::Sanctuary => Some(LevelId::Dawn),
+            LevelId::Dawn => None,
         }
     }
 
@@ -43,57 +55,29 @@ impl LevelId {
         match self {
             LevelId::PinkSunset => Color::srgb(0.94, 0.70, 0.74),
             LevelId::NightForest => Color::srgb(0.06, 0.10, 0.14),
+            LevelId::AmberRuins => Color::srgb(0.22, 0.13, 0.08),
+            LevelId::Sanctuary => Color::srgb(0.04, 0.04, 0.06),
+            LevelId::Dawn => Color::srgb(0.85, 0.85, 0.87),
         }
     }
 
-    fn ground(self) -> &'static str {
+    fn suffix(self) -> &'static str {
         match self {
-            LevelId::PinkSunset => "sprites/tile_ground.png",
-            LevelId::NightForest => "sprites/tile_ground_forest.png",
+            LevelId::PinkSunset => "",
+            LevelId::NightForest => "_forest",
+            LevelId::AmberRuins => "_amber",
+            LevelId::Sanctuary => "_sanctuary",
+            LevelId::Dawn => "_dawn",
         }
     }
 
-    fn grass(self) -> &'static str {
-        match self {
-            LevelId::PinkSunset => "sprites/tile_grass.png",
-            LevelId::NightForest => "sprites/tile_grass_forest.png",
-        }
-    }
-
-    fn platform(self) -> &'static str {
-        match self {
-            LevelId::PinkSunset => "sprites/tile_platform.png",
-            LevelId::NightForest => "sprites/tile_platform_forest.png",
-        }
-    }
-
-    fn wall(self) -> &'static str {
-        match self {
-            LevelId::PinkSunset => "sprites/tile_wall.png",
-            LevelId::NightForest => "sprites/tile_wall_forest.png",
-        }
-    }
-
-    pub fn parallax_back(self) -> &'static str {
-        match self {
-            LevelId::PinkSunset => "sprites/parallax_back.png",
-            LevelId::NightForest => "sprites/parallax_back_forest.png",
-        }
-    }
-
-    pub fn parallax_mid(self) -> &'static str {
-        match self {
-            LevelId::PinkSunset => "sprites/parallax_mid.png",
-            LevelId::NightForest => "sprites/parallax_mid_forest.png",
-        }
-    }
-
-    pub fn parallax_front(self) -> &'static str {
-        match self {
-            LevelId::PinkSunset => "sprites/parallax_front.png",
-            LevelId::NightForest => "sprites/parallax_front_forest.png",
-        }
-    }
+    fn ground(self) -> String { format!("sprites/tile_ground{}.png", self.suffix()) }
+    fn grass(self) -> String { format!("sprites/tile_grass{}.png", self.suffix()) }
+    fn platform(self) -> String { format!("sprites/tile_platform{}.png", self.suffix()) }
+    fn wall(self) -> String { format!("sprites/tile_wall{}.png", self.suffix()) }
+    pub fn parallax_back(self) -> String { format!("sprites/parallax_back{}.png", self.suffix()) }
+    pub fn parallax_mid(self) -> String { format!("sprites/parallax_mid{}.png", self.suffix()) }
+    pub fn parallax_front(self) -> String { format!("sprites/parallax_front{}.png", self.suffix()) }
 }
 
 #[derive(Resource, Clone, Copy, Default, Debug)]

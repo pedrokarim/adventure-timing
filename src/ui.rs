@@ -11,7 +11,7 @@
 use crate::heroes::{Hero, SelectedHero};
 use crate::level::{Checkpoint, RespawnPoint};
 use crate::physics::{Grounded, Velocity};
-use crate::player::{Player, PlayerController};
+use crate::player::{Player, PlayerController, PlayerHp};
 use crate::save::{save_data, save_settings, SaveData, Settings};
 use crate::states::{GameState, RunStats};
 use crate::world::{CurrentLevel, PLAYER_SPAWN, TOTAL_LEVELS};
@@ -70,6 +70,12 @@ struct HudTime;
 
 #[derive(Component)]
 struct HudLevel;
+
+#[derive(Component)]
+struct HudHearts;
+
+#[derive(Component)]
+struct HeartIcon(u32);
 
 #[derive(Component)]
 struct TitleText;
@@ -243,15 +249,47 @@ fn setup_hud(mut commands: Commands, font: Res<UiFont>) {
                     },
                 ),
             ));
+
+            // Ligne de cœurs (max 5 affichés, plus = juste +N)
+            p.spawn((
+                HudHearts,
+                NodeBundle {
+                    style: Style {
+                        flex_direction: FlexDirection::Row,
+                        column_gap: Val::Px(4.0),
+                        margin: UiRect::top(Val::Px(6.0)),
+                        ..default()
+                    },
+                    ..default()
+                },
+            ))
+            .with_children(|p| {
+                for i in 0..5 {
+                    p.spawn((
+                        HeartIcon(i),
+                        TextBundle::from_section(
+                            "♥",
+                            TextStyle {
+                                font: font.display.clone(),
+                                font_size: 22.0,
+                                color: Color::srgb(0.30, 0.12, 0.16),
+                            },
+                        ),
+                    ));
+                }
+            });
         });
 }
 
+#[allow(clippy::type_complexity)]
 fn update_hud(
     stats: Res<RunStats>,
     current_level: Res<CurrentLevel>,
-    mut deaths_q: Query<&mut Text, (With<HudDeaths>, Without<HudTime>, Without<HudLevel>)>,
-    mut time_q: Query<&mut Text, (With<HudTime>, Without<HudDeaths>, Without<HudLevel>)>,
-    mut level_q: Query<&mut Text, (With<HudLevel>, Without<HudTime>, Without<HudDeaths>)>,
+    player_hp: Query<&PlayerHp, With<Player>>,
+    mut deaths_q: Query<&mut Text, (With<HudDeaths>, Without<HudTime>, Without<HudLevel>, Without<HeartIcon>)>,
+    mut time_q: Query<&mut Text, (With<HudTime>, Without<HudDeaths>, Without<HudLevel>, Without<HeartIcon>)>,
+    mut level_q: Query<&mut Text, (With<HudLevel>, Without<HudTime>, Without<HudDeaths>, Without<HeartIcon>)>,
+    mut hearts_q: Query<(&HeartIcon, &mut Text), (Without<HudLevel>, Without<HudDeaths>, Without<HudTime>)>,
 ) {
     if let Ok(mut t) = deaths_q.get_single_mut() {
         t.sections[0].value = format!("Mortes — {}", stats.deaths);
@@ -266,6 +304,21 @@ fn update_hud(
             TOTAL_LEVELS,
             current_level.0.label(),
         );
+    }
+    if let Ok(hp) = player_hp.get_single() {
+        for (icon, mut text) in &mut hearts_q {
+            if icon.0 < hp.max {
+                if icon.0 < hp.current {
+                    text.sections[0].value = "♥".to_string();
+                    text.sections[0].style.color = Color::srgb(0.93, 0.30, 0.36);
+                } else {
+                    text.sections[0].value = "♡".to_string();
+                    text.sections[0].style.color = Color::srgb(0.40, 0.16, 0.20);
+                }
+            } else {
+                text.sections[0].value = "".to_string();
+            }
+        }
     }
 }
 

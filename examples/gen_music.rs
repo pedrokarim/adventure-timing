@@ -200,5 +200,58 @@ fn main() {
     let track2 = mix(&[&bass2, &melody2, &pad2]);
     save("assets/music/level_2.wav", &track2);
 
+
+    // ===== Niveau 3 : "Ruines d'ambre" — C mineur, BPM 90 (industriel) =====
+    let duration = 26.0;
+    let bpm = 90.0;
+    let root_l3 = 65.4; // C2
+    let bass3 = synth_bass(duration, root_l3, 0.34);
+    let melody3 = synth_melody(
+        duration, bpm, root_l3 * 2.0, &pentatonic_minor,
+        &[0, 3, 2, 4, 1, 3, 0, 2, 4, 1, 3, 2],
+        0.20,
+    );
+    let pad3 = synth_pad(
+        duration, bpm, root_l3 * 2.0, &pentatonic_minor,
+        &[(0, 2, 4), (1, 3, 0), (3, 0, 2)],
+        0.16,
+    );
+    save("assets/music/level_3.wav", &mix(&[&bass3, &melody3, &pad3]));
+
+    // ===== Niveau 4 : "Sanctuaire" — B mineur, BPM 56 (très lent, sombre) =====
+    let duration = 32.0;
+    let bpm = 56.0;
+    let root_l4 = 61.7; // B1
+    let bass4 = synth_bass(duration, root_l4, 0.38);
+    let melody4 = synth_melody(
+        duration, bpm, root_l4 * 2.0, &pentatonic_minor,
+        &[0, 1, 2, 1, 3, 1, 0, 4, 2, 1, 0, 3, 1, 2],
+        0.16,
+    );
+    let pad4 = synth_pad(
+        duration, bpm, root_l4 * 2.0, &pentatonic_minor,
+        &[(0, 1, 3), (0, 2, 4), (1, 3, 0)],
+        0.14,
+    );
+    save("assets/music/level_4.wav", &mix(&[&bass4, &melody4, &pad4]));
+
+    // ===== Niveau 5 : "Aurore" — A majeur, BPM 108 (lumineux, résolution) =====
+    let pentatonic_major = [1.0, 1.125, 1.260, 1.498, 1.682];
+    let duration = 22.0;
+    let bpm = 108.0;
+    let root_l5 = 110.0; // A2
+    let bass5 = synth_bass(duration, root_l5, 0.30);
+    let melody5 = synth_melody(
+        duration, bpm, root_l5 * 2.0, &pentatonic_major,
+        &[0, 2, 4, 2, 1, 3, 4, 2, 0, 3, 2, 4, 0, 2],
+        0.22,
+    );
+    let pad5 = synth_pad(
+        duration, bpm, root_l5 * 2.0, &pentatonic_major,
+        &[(0, 2, 4), (2, 4, 1), (4, 1, 3), (0, 2, 4)],
+        0.18,
+    );
+    save("assets/music/level_5.wav", &mix(&[&bass5, &melody5, &pad5]));
+
     println!("Musique générée dans assets/music/");
 }

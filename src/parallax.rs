@@ -76,7 +76,7 @@ pub fn spawn_parallax_layers(
         level.parallax_mid(),
         level.parallax_front(),
     ];
-    for (slot, path) in LAYERS.iter().zip(paths) {
+    for (slot, path) in LAYERS.iter().zip(&paths) {
         for i in 0..TILE_COUNT {
             let x = START_X + i as f32 * slot.size.x;
             commands.spawn((
@@ -86,7 +86,7 @@ pub fn spawn_parallax_layers(
                     base_x: x,
                 },
                 SpriteBundle {
-                    texture: asset_server.load(path),
+                    texture: asset_server.load(path.clone()),
                     sprite: Sprite {
                         custom_size: Some(slot.size),
                         ..default()

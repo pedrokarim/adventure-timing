@@ -106,6 +106,14 @@ impl Hero {
             _ => 0.0,
         }
     }
+
+    pub fn max_hp(self) -> u32 {
+        match self {
+            Hero::Wanderer => 3,
+            Hero::Tightrope => 2,
+            Hero::Guardian => 4,
+        }
+    }
 }
 
 /// Le héros actuellement sélectionné. Lu par player.rs et les autres

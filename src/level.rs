@@ -5,7 +5,7 @@
 use crate::audio::CheckpointReached;
 use crate::items::ActiveEffects;
 use crate::physics::Collider;
-use crate::player::Player;
+use crate::player::{Player, PlayerHit};
 use crate::states::{GameState, PlayerDied, PlayerWon};
 use crate::world::LevelEntity;
 use bevy::prelude::*;
@@ -61,9 +61,8 @@ fn check_spike_collision(
     player: Query<(&Transform, &Collider), With<Player>>,
     spikes: Query<(&Transform, &Collider), With<Spike>>,
     effects: Res<ActiveEffects>,
-    mut death: EventWriter<PlayerDied>,
+    mut hit: EventWriter<PlayerHit>,
 ) {
-    // Pétale d'ambre : pics inoffensifs.
     if effects.invincible > 0.0 {
         return;
     }
@@ -72,7 +71,7 @@ fn check_spike_collision(
     };
     for (s_t, s_c) in &spikes {
         if aabb_overlap(p_t.translation, p_c.size, s_t.translation, s_c.size) {
-            death.send(PlayerDied);
+            hit.send(PlayerHit { damage: 1 });
             return;
         }
     }
