@@ -1,56 +1,48 @@
 //! Décor de fond parallaxé en 3 couches : pics lointains avec étoiles,
 //! pics intermédiaires, forêt en silhouette au premier plan. Toutes les
-//! textures sont générées dans examples/gen_assets.rs.
+//! textures sont générées dans examples/gen_assets.rs et choisies via
+//! la `Resource CurrentLevel` (voir world.rs).
 
+use crate::world::{CurrentLevel, LevelEntity, LevelId};
 use bevy::prelude::*;
 
-struct ParallaxLayer {
+struct ParallaxSlot {
     /// 0 = fixe au monde, 1 = collé à la caméra. Plus petit = plus loin.
     factor: f32,
-    /// Path de la texture relative à `assets/`.
-    texture: &'static str,
     /// Y en coordonnées monde où l'image est centrée.
     y: f32,
-    /// Taille rendue de la tuile en monde. La largeur sert à tiler le long
-    /// de la caméra ; la hauteur correspond à la hauteur native du PNG.
+    /// Taille rendue de la tuile en monde.
     size: Vec2,
     /// Profondeur Z (toujours négative pour rester derrière le gameplay).
     z: f32,
 }
 
-const LAYERS: &[ParallaxLayer] = &[
-    // Nuages + montagnes lointaines en haut du ciel
-    ParallaxLayer {
+const LAYERS: &[ParallaxSlot] = &[
+    ParallaxSlot {
         factor: 0.10,
-        texture: "sprites/parallax_back.png",
         y: -100.0,
         size: Vec2::new(512.0, 320.0),
         z: -12.0,
     },
-    // Montagnes intermédiaires (rose moyen)
-    ParallaxLayer {
+    ParallaxSlot {
         factor: 0.30,
-        texture: "sprites/parallax_mid.png",
         y: -200.0,
         size: Vec2::new(512.0, 260.0),
         z: -11.0,
     },
-    // Pylônes silhouettes (horizon, juste au-dessus du sol gameplay)
-    ParallaxLayer {
+    ParallaxSlot {
         factor: 0.55,
-        texture: "sprites/parallax_front.png",
         y: -280.0,
         size: Vec2::new(512.0, 180.0),
         z: -10.0,
     },
 ];
 
-/// Nombre de tuiles spawnées par couche pour couvrir le niveau.
 const TILE_COUNT: i32 = 10;
 const START_X: f32 = -1400.0;
 
 #[derive(Component)]
-struct Parallax {
+pub struct Parallax {
     factor: f32,
     base_x: f32,
 }
@@ -59,27 +51,47 @@ pub struct ParallaxPlugin;
 
 impl Plugin for ParallaxPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_layers)
+        app.add_systems(Startup, spawn_default_layers)
             .add_systems(Update, update_parallax);
     }
 }
 
-fn spawn_layers(mut commands: Commands, asset_server: Res<AssetServer>) {
-    for layer in LAYERS {
+fn spawn_default_layers(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    current_level: Res<CurrentLevel>,
+) {
+    spawn_parallax_layers(&mut commands, &asset_server, current_level.0);
+}
+
+/// Spawne les 3 couches de parallax pour le niveau donné. Public car
+/// `world::handle_level_transition` l'appelle à la transition.
+pub fn spawn_parallax_layers(
+    commands: &mut Commands,
+    asset_server: &AssetServer,
+    level: LevelId,
+) {
+    let paths = [
+        level.parallax_back(),
+        level.parallax_mid(),
+        level.parallax_front(),
+    ];
+    for (slot, path) in LAYERS.iter().zip(paths) {
         for i in 0..TILE_COUNT {
-            let x = START_X + i as f32 * layer.size.x;
+            let x = START_X + i as f32 * slot.size.x;
             commands.spawn((
+                LevelEntity,
                 Parallax {
-                    factor: layer.factor,
+                    factor: slot.factor,
                     base_x: x,
                 },
                 SpriteBundle {
-                    texture: asset_server.load(layer.texture),
+                    texture: asset_server.load(path),
                     sprite: Sprite {
-                        custom_size: Some(layer.size),
+                        custom_size: Some(slot.size),
                         ..default()
                     },
-                    transform: Transform::from_xyz(x, layer.y, layer.z),
+                    transform: Transform::from_xyz(x, slot.y, slot.z),
                     ..default()
                 },
             ));

@@ -967,6 +967,171 @@ fn make_items() {
     save(&hourglass, "assets/sprites/item_hourglass.png");
 }
 
+// =================================================== Forest tiles ===
+
+const FOREST_DIRT: Rgba<u8> = Rgba([24, 36, 46, 255]);
+const FOREST_DIRT_DK: Rgba<u8> = Rgba([12, 22, 30, 255]);
+const FOREST_DIRT_LT: Rgba<u8> = Rgba([46, 62, 78, 255]);
+const FOREST_MOSS: Rgba<u8> = Rgba([40, 88, 90, 255]);
+const FOREST_MOSS_DK: Rgba<u8> = Rgba([20, 56, 60, 255]);
+const FOREST_MOSS_LT: Rgba<u8> = Rgba([78, 144, 138, 255]);
+const FOREST_STONE: Rgba<u8> = Rgba([40, 60, 78, 255]);
+const FOREST_STONE_DK: Rgba<u8> = Rgba([18, 30, 44, 255]);
+const FOREST_STONE_LT: Rgba<u8> = Rgba([64, 96, 116, 255]);
+const FOREST_TREE_BLUE: Rgba<u8> = Rgba([56, 60, 218, 255]);
+const FOREST_TREE_BLUE_DK: Rgba<u8> = Rgba([30, 32, 156, 255]);
+
+fn make_forest_tiles() {
+    // Ground 32x32 wine sombre teinté bleu nuit + petits éclats cyan
+    let mut img = RgbaImage::from_pixel(32, 32, FOREST_DIRT);
+    for (x, y, c) in [
+        (3, 4, FOREST_DIRT_DK), (11, 2, FOREST_DIRT_DK), (18, 6, FOREST_DIRT_LT),
+        (25, 3, FOREST_DIRT_LT), (5, 12, FOREST_DIRT_DK), (14, 14, FOREST_DIRT_LT),
+        (22, 11, FOREST_DIRT_DK), (28, 16, FOREST_DIRT_LT),
+        (9, 19, FOREST_DIRT_DK), (20, 20, FOREST_DIRT_LT), (3, 17, FOREST_DIRT_DK),
+        (7, 25, FOREST_DIRT_DK), (17, 27, FOREST_DIRT_LT),
+        (25, 24, FOREST_DIRT_DK), (12, 29, FOREST_DIRT_DK),
+    ] {
+        put(&mut img, x, y, c);
+        put(&mut img, x + 1, y, c);
+    }
+    put(&mut img, 9, 8, CYAN);
+    put(&mut img, 23, 22, CYAN_DK);
+    save(&img, "assets/sprites/tile_ground_forest.png");
+
+    // Grass strip 32x10 : mousse teal éparse
+    let mut grass = RgbaImage::from_pixel(32, 10, TR);
+    let heights = [3i32, 5, 2, 4, 6, 3, 5, 4, 2, 5, 3, 4, 6, 3, 5, 4,
+                   3, 5, 2, 4, 6, 3, 5, 4, 2, 5, 3, 4, 6, 3, 5, 4];
+    for x in 0..32 {
+        let top = heights[x as usize].min(6);
+        for dy in 0..(7 - top) {
+            put(&mut grass, x, top + dy, FOREST_MOSS);
+        }
+        put(&mut grass, x, top, FOREST_MOSS_LT);
+    }
+    hline(&mut grass, 0, 7, 32, FOREST_MOSS_DK);
+    rect(&mut grass, 0, 8, 32, 2, FOREST_DIRT);
+    save(&grass, "assets/sprites/tile_grass_forest.png");
+
+    // Platform 32x32 : pierre noir-bleu type donjon
+    let mut platform = RgbaImage::from_pixel(32, 32, FOREST_STONE);
+    hline(&mut platform, 0, 0, 32, FOREST_STONE_LT);
+    hline(&mut platform, 0, 1, 32, FOREST_STONE);
+    hline(&mut platform, 0, 8, 32, FOREST_STONE_DK);
+    vline(&mut platform, 12, 0, 9, FOREST_STONE_DK);
+    vline(&mut platform, 24, 0, 9, FOREST_STONE_DK);
+    hline(&mut platform, 0, 16, 32, FOREST_STONE_DK);
+    vline(&mut platform, 6, 9, 8, FOREST_STONE_DK);
+    vline(&mut platform, 18, 9, 8, FOREST_STONE_DK);
+    vline(&mut platform, 30, 9, 8, FOREST_STONE_DK);
+    hline(&mut platform, 0, 24, 32, FOREST_STONE_DK);
+    vline(&mut platform, 12, 17, 8, FOREST_STONE_DK);
+    vline(&mut platform, 24, 17, 8, FOREST_STONE_DK);
+    vline(&mut platform, 6, 25, 7, FOREST_STONE_DK);
+    vline(&mut platform, 18, 25, 7, FOREST_STONE_DK);
+    vline(&mut platform, 30, 25, 7, FOREST_STONE_DK);
+    hline(&mut platform, 0, 31, 32, FOREST_STONE_DK);
+    put(&mut platform, 4, 3, FOREST_STONE_LT);
+    put(&mut platform, 20, 11, FOREST_STONE_LT);
+    put(&mut platform, 8, 19, FOREST_STONE_LT);
+    put(&mut platform, 26, 27, FOREST_STONE_LT);
+    save(&platform, "assets/sprites/tile_platform_forest.png");
+
+    // Wall 32x32 — briques noires bleutées
+    let mut wall = RgbaImage::from_pixel(32, 32, FOREST_STONE_DK);
+    for row in 0..4 {
+        let y = row * 8;
+        let offset = if row % 2 == 0 { 0 } else { 8 };
+        for col in 0..4 {
+            let x = col * 8 + offset;
+            if x >= 32 { continue; }
+            rect(&mut wall, x + 1, y + 1, 6, 6, FOREST_STONE);
+            put(&mut wall, x + 1, y + 1, FOREST_STONE_LT);
+        }
+    }
+    save(&wall, "assets/sprites/tile_wall_forest.png");
+}
+
+fn make_forest_parallax() {
+    // Back : ciel nuit + grand arbre bleu central
+    let mut back = RgbaImage::from_pixel(512, 320, Rgba([18, 28, 40, 255]));
+    // Étoiles
+    for (x, y) in [
+        (30i32, 20i32), (80, 40), (140, 30), (200, 25), (260, 45),
+        (320, 22), (380, 35), (440, 50), (490, 25),
+        (60, 80), (200, 90), (350, 75), (450, 85),
+        (110, 130), (300, 120), (480, 130),
+    ] {
+        put(&mut back, x, y, HAIR);
+        put(&mut back, x + 1, y, Rgba([200, 220, 240, 200]));
+    }
+    // Petits points cyan rares (cristaux)
+    put(&mut back, 90, 70, CYAN);
+    put(&mut back, 250, 110, CYAN);
+    put(&mut back, 410, 80, CYAN);
+
+    // Grand arbre stylisé au centre (silhouette)
+    let trunk_x = 256i32;
+    rect(&mut back, trunk_x - 12, 220, 24, 100, Rgba([22, 30, 38, 255]));
+    rect(&mut back, trunk_x - 8, 200, 16, 20, Rgba([22, 30, 38, 255]));
+    // Boules de feuillage bleu
+    let leaf_centers = [
+        (trunk_x - 60, 180, 32),
+        (trunk_x + 50, 160, 38),
+        (trunk_x - 20, 140, 36),
+        (trunk_x + 70, 130, 30),
+        (trunk_x - 80, 130, 28),
+        (trunk_x + 20, 100, 34),
+    ];
+    for (cx, cy, r) in leaf_centers {
+        for dy in -r..=r {
+            for dx in -r..=r {
+                if dx * dx + dy * dy <= r * r {
+                    put(&mut back, cx + dx, cy + dy, FOREST_TREE_BLUE);
+                }
+            }
+        }
+    }
+    // Highlights
+    for (cx, cy, _) in leaf_centers {
+        put(&mut back, cx - 8, cy - 8, FOREST_TREE_BLUE);
+        put(&mut back, cx - 4, cy - 10, Rgba([90, 100, 240, 255]));
+    }
+    save(&back, "assets/sprites/parallax_back_forest.png");
+
+    // Mid : silhouettes d'arbres lointains
+    let mut mid = RgbaImage::from_pixel(512, 260, TR);
+    let tree_xs = [40, 110, 180, 260, 330, 400, 470];
+    for &tx in &tree_xs {
+        rect(&mut mid, tx, 160, 6, 100, Rgba([10, 18, 26, 255]));
+        // Cime
+        for row in 0..40 {
+            let half = (20.0 - row as f32 * 0.4) as i32;
+            if half > 0 {
+                let y = 120 + row;
+                rect(&mut mid, tx - half + 3, y, half * 2, 1, Rgba([14, 24, 34, 255]));
+            }
+        }
+    }
+    save(&mid, "assets/sprites/parallax_mid_forest.png");
+
+    // Front : sol foncé + brins de mousse + quelques rochers
+    let mut front = RgbaImage::from_pixel(512, 180, TR);
+    rect(&mut front, 0, 110, 512, 70, Rgba([10, 14, 18, 255]));
+    // Touffes
+    for x in (0..512).step_by(3) {
+        let h = ((x as f32 * 0.12).sin().abs() * 4.0 + 1.0) as i32;
+        rect(&mut front, x, 110 - h, 1, h, FOREST_MOSS);
+    }
+    // Rochers
+    for &rx in &[60, 200, 340, 460] {
+        rect(&mut front, rx, 102, 18, 8, Rgba([18, 26, 36, 255]));
+        rect(&mut front, rx + 2, 100, 14, 2, Rgba([18, 26, 36, 255]));
+    }
+    save(&front, "assets/sprites/parallax_front_forest.png");
+}
+
 // ========================================================= Enemies ===
 
 fn make_enemies() {
@@ -1114,5 +1279,7 @@ fn main() {
     make_throwables();
     make_projectile_magic();
     make_enemies();
+    make_forest_tiles();
+    make_forest_parallax();
     println!("Assets générés dans assets/sprites/");
 }

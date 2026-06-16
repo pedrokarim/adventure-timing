@@ -7,6 +7,7 @@ use crate::items::ActiveEffects;
 use crate::physics::Collider;
 use crate::player::Player;
 use crate::states::{GameState, PlayerDied, PlayerWon};
+use crate::world::LevelEntity;
 use bevy::prelude::*;
 
 const CHECKPOINT_ACTIVE: Color = Color::srgb(0.45, 1.0, 0.55);
@@ -143,6 +144,7 @@ pub fn spawn_spike_field(
     for i in 0..count {
         let x = start_x + i as f32 * tile;
         commands.spawn((
+            LevelEntity,
             Spike,
             Collider::new(Vec2::new(tile, 24.0)),
             SpriteBundle {
@@ -166,6 +168,7 @@ pub fn spawn_checkpoint(
 ) {
     let size = Vec2::new(32.0, 64.0);
     commands.spawn((
+        LevelEntity,
         Checkpoint {
             spawn_point: spawn,
             triggered: false,
@@ -186,6 +189,7 @@ pub fn spawn_checkpoint(
 pub fn spawn_goal(commands: &mut Commands, asset_server: &AssetServer, pos: Vec2) {
     let size = Vec2::new(48.0, 80.0);
     commands.spawn((
+        LevelEntity,
         Goal,
         Collider::new(Vec2::new(28.0, 70.0)),
         SpriteBundle {

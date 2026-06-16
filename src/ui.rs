@@ -12,8 +12,8 @@ use crate::level::{Checkpoint, RespawnPoint};
 use crate::physics::{Grounded, Velocity};
 use crate::player::{Player, PlayerController};
 use crate::save::{save_data, save_settings, SaveData, Settings};
-use crate::states::{GameState, PlayerWon, RunStats};
-use crate::world::{CURRENT_LEVEL, PLAYER_SPAWN, TOTAL_LEVELS};
+use crate::states::{GameState, RunStats};
+use crate::world::{CurrentLevel, PLAYER_SPAWN, TOTAL_LEVELS};
 use bevy::app::AppExit;
 use bevy::prelude::*;
 use bevy::text::Font;
@@ -153,7 +153,6 @@ impl Plugin for UiPlugin {
                     sync_dynamic_labels,
                     pulse_title,
                     toggle_pause_in_game.run_if(in_state(GameState::Playing)),
-                    handle_win_event.run_if(in_state(GameState::Playing)),
                     update_hud.run_if(in_state(GameState::Playing)),
                 ),
             );
@@ -182,7 +181,7 @@ fn setup_hud(mut commands: Commands, font: Res<UiFont>) {
             p.spawn((
                 HudLevel,
                 TextBundle::from_section(
-                    format!("Niveau {} / {}", CURRENT_LEVEL, TOTAL_LEVELS),
+                    "Niveau 1",
                     TextStyle {
                         font: font.regular.clone(),
                         font_size: 22.0,
@@ -217,14 +216,24 @@ fn setup_hud(mut commands: Commands, font: Res<UiFont>) {
 
 fn update_hud(
     stats: Res<RunStats>,
-    mut deaths_q: Query<&mut Text, (With<HudDeaths>, Without<HudTime>)>,
-    mut time_q: Query<&mut Text, (With<HudTime>, Without<HudDeaths>)>,
+    current_level: Res<CurrentLevel>,
+    mut deaths_q: Query<&mut Text, (With<HudDeaths>, Without<HudTime>, Without<HudLevel>)>,
+    mut time_q: Query<&mut Text, (With<HudTime>, Without<HudDeaths>, Without<HudLevel>)>,
+    mut level_q: Query<&mut Text, (With<HudLevel>, Without<HudTime>, Without<HudDeaths>)>,
 ) {
     if let Ok(mut t) = deaths_q.get_single_mut() {
         t.sections[0].value = format!("Morts : {}", stats.deaths);
     }
     if let Ok(mut t) = time_q.get_single_mut() {
         t.sections[0].value = format!("Temps : {:.1} s", stats.time_seconds);
+    }
+    if let Ok(mut t) = level_q.get_single_mut() {
+        t.sections[0].value = format!(
+            "Niveau {} / {}  -  {}",
+            current_level.0.number(),
+            TOTAL_LEVELS,
+            current_level.0.label(),
+        );
     }
 }
 
@@ -724,7 +733,7 @@ fn spawn_win_screen(
         spawn_text(
             p,
             font,
-            &format!("Niveau {CURRENT_LEVEL} / {TOTAL_LEVELS} terminé"),
+            &format!("Les {TOTAL_LEVELS} niveaux sont terminés"),
             22.0,
             ACCENT_AMBER,
         );
@@ -1008,15 +1017,8 @@ fn toggle_pause_in_game(keys: Res<ButtonInput<KeyCode>>, mut next: ResMut<NextSt
     }
 }
 
-fn handle_win_event(
-    mut events: EventReader<PlayerWon>,
-    mut next: ResMut<NextState<GameState>>,
-) {
-    if events.read().next().is_some() {
-        next.set(GameState::Win);
-    }
-}
 
+#[allow(clippy::too_many_arguments)]
 fn reset_player_for_run(
     mut player: Query<
         (
