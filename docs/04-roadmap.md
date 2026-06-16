@@ -51,8 +51,8 @@ détaillée pour les chantiers en cours / à venir.
 - [x] Particules : poussière au saut/atterrissage, ring au double saut
 - [x] Screen shake (atterrissage et mort)
 - [x] SFX procéduraux (jump, land, death, checkpoint, win)
-- [x] Parallax background (3 couches, rose Camille pour le niveau 1)
-- [x] Background dédié pour le main menu (camille-unknown-home)
+- [x] Parallax background (3 couches, rose coucher pour le niveau 1)
+- [x] Background dédié pour le main menu (scène rose)
 - [ ] **À faire : musique** (Étape C)
 - [ ] **À faire : transitions visuelles entre états** (fade in/out)
 
@@ -63,8 +63,7 @@ détaillée pour les chantiers en cours / à venir.
 ## Étape A — Niveaux supplémentaires + ambiances variées
 
 **But** : passer de 1 niveau hardcodé à 4-5 niveaux avec ambiances
-distinctes inspirées du portfolio de Camille Unknown
-(`assets/inspirations/`).
+distinctes inspirées du moodboard (`assets/inspirations/`).
 
 ### Ambiances proposées
 
@@ -623,7 +622,6 @@ impl Hero {
 - [ ] WASM pour itch.io (`cargo run --target wasm32-unknown-unknown`,
       `wasm-bindgen`, `trunk`)
 - [ ] Page itch.io avec screenshots, GIFs gameplay
-- [ ] Bandeau crédit Camille Unknown (avec autorisation idéalement)
 
 ---
 

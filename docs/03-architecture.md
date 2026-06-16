@@ -12,7 +12,7 @@ adventure-timing/
 ├── Cargo.toml
 ├── assets/
 │   ├── fonts/             DejaVuSansMono regular + bold (TTF)
-│   ├── inspirations/      Réfs Camille Unknown (.webp, .gif)
+│   ├── inspirations/      Moodboard direction artistique (.webp, .gif)
 │   ├── sfx/               WAV procéduraux (jump, land, death, …)
 │   └── sprites/           PNG procéduraux (player, tiles, parallax, …)
 ├── docs/
@@ -189,4 +189,4 @@ Définis dans `src/states.rs` (anciens) et `src/audio.rs` (nouveaux) :
   des binaires Rust (`examples/gen_assets.rs`, `examples/gen_audio.rs`).
   Pas de PNG dessiné à la main commité.
   - Exception : `assets/fonts/*.ttf` (DejaVu) et
-    `assets/inspirations/*.webp` (réfs Camille)
+    `assets/inspirations/*.webp` (moodboard)

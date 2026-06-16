@@ -21,6 +21,9 @@ pub enum EnemyKind {
     Spitter,
     /// Patrouille, charge sur le joueur s'il est dans range.
     Charger,
+    /// Silhouette qui traverse les murs et suit lentement le joueur.
+    /// Plus de PV, ne peut pas être stompée.
+    Wraith,
 }
 
 impl EnemyKind {
@@ -30,6 +33,7 @@ impl EnemyKind {
             EnemyKind::Flyer => "sprites/enemy_flyer.png",
             EnemyKind::Spitter => "sprites/enemy_spitter.png",
             EnemyKind::Charger => "sprites/enemy_charger.png",
+            EnemyKind::Wraith => "sprites/enemy_wraith.png",
         }
     }
 
@@ -39,6 +43,7 @@ impl EnemyKind {
             EnemyKind::Flyer => Vec2::new(18.0, 18.0),
             EnemyKind::Spitter => Vec2::new(24.0, 20.0),
             EnemyKind::Charger => Vec2::new(22.0, 18.0),
+            EnemyKind::Wraith => Vec2::new(20.0, 28.0),
         }
     }
 }
@@ -74,6 +79,7 @@ impl Plugin for EnemiesPlugin {
                 ai_flyer,
                 ai_spitter,
                 ai_charger,
+                ai_wraith,
                 tick_enemy_projectiles,
                 check_stomp_or_damage,
                 apply_attack_hits,
@@ -100,6 +106,7 @@ fn spawn_enemies(mut commands: Commands, asset_server: Res<AssetServer>) {
     spawn_enemy(&mut commands, &asset_server, EnemyKind::Spitter, Vec2::new(880.0, 60.0), 0.0..0.0);
     spawn_enemy(&mut commands, &asset_server, EnemyKind::Spitter, Vec2::new(1080.0, 360.0), 0.0..0.0);
     spawn_enemy(&mut commands, &asset_server, EnemyKind::Charger, Vec2::new(1500.0, -258.0), 1200.0..1800.0);
+    spawn_enemy(&mut commands, &asset_server, EnemyKind::Wraith, Vec2::new(1700.0, 100.0), 1400.0..2100.0);
 }
 
 fn spawn_enemy(
@@ -115,6 +122,7 @@ fn spawn_enemy(
         EnemyKind::Flyer => 1,
         EnemyKind::Spitter => 3,
         EnemyKind::Charger => 3,
+        EnemyKind::Wraith => 5,
     };
     commands.spawn((
         Enemy {
@@ -229,9 +237,12 @@ fn check_stomp_or_damage(
         }
 
         // Détection stomp : joueur AU-DESSUS de l'ennemi et tombant.
+        // Le Wraith n'est pas stompable.
         let player_bottom = p_t.translation.y - p_c.size.y * 0.5;
         let enemy_top = e_t.translation.y + e_c.size.y * 0.5;
-        let stomped = p_v.0.y < -50.0 && player_bottom >= enemy_top - 8.0;
+        let stomped = enemy.kind != EnemyKind::Wraith
+            && p_v.0.y < -50.0
+            && player_bottom >= enemy_top - 8.0;
 
         if stomped {
             // L'ennemi prend dégâts max, joueur rebondit + recharge double saut.
@@ -407,6 +418,38 @@ fn ai_charger(
             e.direction = -1.0;
         }
         sprite.flip_x = e.direction < 0.0;
+    }
+}
+
+/// Wraith : flotte lentement vers le joueur en passant à travers les
+/// murs (pas de collision avec les solides puisqu'on bouge à la main).
+/// Non-stompable (le check est fait dans check_stomp_or_damage). Plus
+/// dangereux car on peut pas s'en débarrasser facilement.
+const WRAITH_SPEED: f32 = 60.0;
+
+fn ai_wraith(
+    time: Res<Time>,
+    mut q: Query<(&mut Enemy, &mut Transform, &mut Sprite), Without<Player>>,
+    player: Query<&Transform, With<Player>>,
+) {
+    let dt = time.delta_seconds();
+    let Ok(player_t) = player.get_single() else {
+        return;
+    };
+    for (mut e, mut t, mut sprite) in &mut q {
+        if e.kind != EnemyKind::Wraith {
+            continue;
+        }
+        let to_player = player_t.translation.truncate() - t.translation.truncate();
+        let dir = to_player.normalize_or_zero();
+        t.translation.x += dir.x * WRAITH_SPEED * dt;
+        t.translation.y += dir.y * WRAITH_SPEED * dt;
+        // Reste dans la fenêtre de patrouille
+        t.translation.x = t.translation.x.clamp(e.patrol_min_x, e.patrol_max_x);
+        sprite.flip_x = dir.x < 0.0;
+        e.direction = if dir.x < 0.0 { -1.0 } else { 1.0 };
+        // Sinusoïde subtile sur Y pour l'effet "flottant"
+        t.translation.y += (e.phase * 2.0).sin() * 0.3;
     }
 }
 

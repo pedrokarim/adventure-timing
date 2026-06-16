@@ -15,6 +15,9 @@ use bevy::prelude::*;
 pub enum WeaponKind {
     Dagger,
     MagicStaff,
+    /// Épée chargée : maintenir F charge le coup, relâcher pour frapper
+    /// avec un multiplicateur de dégâts (jusqu'à x3 après 1.2 s).
+    Sword,
 }
 
 impl WeaponKind {
@@ -22,6 +25,7 @@ impl WeaponKind {
         match self {
             WeaponKind::Dagger => "Dague",
             WeaponKind::MagicStaff => "Baton magique",
+            WeaponKind::Sword => "Epee",
         }
     }
 }
@@ -37,6 +41,8 @@ pub struct WeaponState {
     pub combo_step: u8,
     /// Fenêtre temporelle pour enchaîner le prochain coup du combo.
     pub combo_window: f32,
+    /// Charge en cours pour l'épée (0..=1.2 s).
+    pub sword_charge: f32,
 }
 
 /// Hitbox d'attaque mêlée. Spawnée pour ~150 ms puis despawn.
@@ -71,7 +77,7 @@ pub struct WeaponsPlugin;
 
 impl Plugin for WeaponsPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(CurrentWeapon(WeaponKind::Dagger))
+        app.insert_resource(CurrentWeapon(WeaponKind::Sword))
             .init_resource::<WeaponState>()
             .add_event::<WeaponHitEnemy>()
             .add_systems(
@@ -98,13 +104,24 @@ fn tick_weapon_state(time: Res<Time>, mut state: ResMut<WeaponState>) {
 
 fn handle_attack_input(
     keys: Res<ButtonInput<KeyCode>>,
+    time: Res<Time>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut state: ResMut<WeaponState>,
     weapon: Res<CurrentWeapon>,
     player: Query<(&Transform, &Player)>,
 ) {
-    if !keys.just_pressed(KeyCode::KeyF) {
+    // === Charge épée ===
+    if matches!(weapon.0, WeaponKind::Sword) && keys.pressed(KeyCode::KeyF) {
+        state.sword_charge = (state.sword_charge + time.delta_seconds()).min(1.2);
+    }
+
+    let trigger = if matches!(weapon.0, WeaponKind::Sword) {
+        keys.just_released(KeyCode::KeyF)
+    } else {
+        keys.just_pressed(KeyCode::KeyF)
+    };
+    if !trigger {
         return;
     }
     if state.cooldown > 0.0 {
@@ -152,6 +169,23 @@ fn handle_attack_input(
             let pos = t.translation.truncate() + Vec2::new(20.0 * dir, 4.0);
             spawn_projectile(&mut commands, &asset_server, pos, dir);
             state.cooldown = 0.45;
+        }
+        WeaponKind::Sword => {
+            // Multiplicateur de dégâts : x1 (instant) → x3 (1.2 s chargé)
+            let charge_t = (state.sword_charge / 1.2).clamp(0.0, 1.0);
+            let damage = (1.0 + charge_t * 2.0) as u32;
+            let size = Vec2::new(30.0 + 18.0 * charge_t, 36.0 + 12.0 * charge_t);
+            let pos = t.translation.truncate() + Vec2::new(26.0 * dir, 2.0);
+            spawn_hitbox(
+                &mut commands,
+                pos,
+                size,
+                damage,
+                Vec2::new(280.0 * dir * (1.0 + charge_t), 120.0),
+                false,
+            );
+            state.cooldown = 0.35 + charge_t * 0.2;
+            state.sword_charge = 0.0;
         }
     }
 }

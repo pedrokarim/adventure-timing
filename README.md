@@ -83,8 +83,8 @@ et désactiver `dynamic_linking`. Le bundle WASM final pèse ~20-30 Mo
 
 ## Direction artistique
 
-Palette **nuit mystique** inspirée du travail de Camille Unknown
-(références dans `assets/inspirations/`) : dominantes teal/bleu nuit,
+Palette **nuit mystique** (moodboard dans `assets/inspirations/`) :
+dominantes teal/bleu nuit,
 silhouettes encapuchonnées, accents cyan (cristaux) et ambre (cœur du
 goal). Forêt en silhouette, étoiles, mountains.
 

@@ -18,6 +18,10 @@ pub enum ThrowableKind {
     IceBlock,
     /// Plateforme cyan 48×6 posée devant le joueur, solide, despawn 4 s.
     MagicPlatform,
+    /// Petit caillou lancé en arc, dégâts faibles mais cooldown court.
+    Rock,
+    /// Torche posée au sol, brûle 8 s, ennemis qui passent prennent 1 dégât.
+    Torch,
 }
 
 impl ThrowableKind {
@@ -26,6 +30,8 @@ impl ThrowableKind {
             ThrowableKind::Bomb => "Bombe",
             ThrowableKind::IceBlock => "Glace",
             ThrowableKind::MagicPlatform => "Plateforme",
+            ThrowableKind::Rock => "Caillou",
+            ThrowableKind::Torch => "Torche",
         }
     }
 
@@ -34,6 +40,8 @@ impl ThrowableKind {
             ThrowableKind::Bomb => "sprites/throwable_bomb.png",
             ThrowableKind::IceBlock => "sprites/throwable_ice.png",
             ThrowableKind::MagicPlatform => "sprites/throwable_platform.png",
+            ThrowableKind::Rock => "sprites/throwable_rock.png",
+            ThrowableKind::Torch => "sprites/throwable_torch.png",
         }
     }
 }
@@ -52,8 +60,8 @@ impl Default for Inventory {
         Self {
             slots: [
                 Some(ThrowableKind::Bomb),
-                Some(ThrowableKind::IceBlock),
-                Some(ThrowableKind::MagicPlatform),
+                Some(ThrowableKind::Rock),
+                Some(ThrowableKind::Torch),
             ],
             selected: 0,
         }
@@ -160,6 +168,12 @@ fn process_use(
                 4.0,
             );
         }
+        ThrowableKind::Rock => {
+            spawn_rock(&mut commands, &asset_server, pos + Vec2::new(16.0 * dir, 4.0), dir);
+        }
+        ThrowableKind::Torch => {
+            spawn_torch(&mut commands, &asset_server, pos + Vec2::new(0.0, -18.0));
+        }
     }
 
     // Consomme l'item du slot (pas refill automatique pour l'instant)
@@ -175,6 +189,55 @@ fn spawn_bomb(commands: &mut Commands, asset_server: &AssetServer, pos: Vec2, di
         Collider::new(size),
         SpriteBundle {
             texture: asset_server.load(ThrowableKind::Bomb.texture()),
+            sprite: Sprite {
+                custom_size: Some(size),
+                ..default()
+            },
+            transform: Transform::from_translation(pos.extend(1.0)),
+            ..default()
+        },
+    ));
+}
+
+fn spawn_rock(commands: &mut Commands, asset_server: &AssetServer, pos: Vec2, dir: f32) {
+    let size = Vec2::splat(10.0);
+    commands.spawn((
+        // Le caillou utilise le système des projectiles d'armes : c'est
+        // un Projectile (weapons.rs) avec faible dégâts qui touche les
+        // ennemis. Plus simple que d'avoir un autre type de hitbox.
+        crate::weapons::Projectile {
+            damage: 1,
+            remaining: 0.8,
+        },
+        Velocity(Vec2::new(320.0 * dir, 200.0)),
+        Collider::new(size),
+        SpriteBundle {
+            texture: asset_server.load("sprites/throwable_rock.png"),
+            sprite: Sprite {
+                custom_size: Some(size),
+                ..default()
+            },
+            transform: Transform::from_translation(pos.extend(1.0)),
+            ..default()
+        },
+    ));
+}
+
+fn spawn_torch(commands: &mut Commands, asset_server: &AssetServer, pos: Vec2) {
+    let size = Vec2::new(14.0, 22.0);
+    // La torche utilise une AttackHitbox persistante : tout ennemi qui
+    // touche prend des dégâts. Le système tick_attack_hitboxes gère le
+    // despawn quand `remaining` arrive à 0 (8 s ici).
+    commands.spawn((
+        crate::weapons::AttackHitbox {
+            damage: 1,
+            knockback: Vec2::new(0.0, 200.0),
+            remaining: 8.0,
+            is_pogo: false,
+        },
+        Collider::new(size),
+        SpriteBundle {
+            texture: asset_server.load("sprites/throwable_torch.png"),
             sprite: Sprite {
                 custom_size: Some(size),
                 ..default()

@@ -27,7 +27,18 @@ struct MusicTracks {
 }
 
 #[derive(Component)]
-struct MusicEntity;
+struct MusicEntity {
+    /// 1.0 = entrant (fade in), 0.0 = nominal, -1.0 = sortant (fade out).
+    state: FadeState,
+    fade_t: f32,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum FadeState {
+    FadingIn,
+    Nominal,
+    FadingOut,
+}
 
 /// Évènement émis par le contrôleur du joueur quand il décolle (sol ou
 /// double saut). Le module effects écoute aussi `PlayerAirJumped` pour
@@ -87,6 +98,7 @@ impl Plugin for AudioPlugin {
                     play_checkpoint,
                     play_win,
                     update_music_on_level_change,
+                    tick_music_fades,
                     update_music_volume,
                 ),
             );
@@ -204,7 +216,10 @@ fn start_music_for_level(
         commands.entity(e).despawn();
     }
     commands.spawn((
-        MusicEntity,
+        MusicEntity {
+            state: FadeState::Nominal,
+            fade_t: 0.0,
+        },
         AudioBundle {
             source: music_handle(&tracks, current_level.0),
             settings: PlaybackSettings {
@@ -222,46 +237,87 @@ fn stop_music(mut commands: Commands, existing: Query<Entity, With<MusicEntity>>
     }
 }
 
-/// Quand le niveau change en cours de partie (transition après le goal),
-/// switche la piste musicale.
+const FADE_DURATION: f32 = 1.5;
+
+/// Quand le niveau change en cours de partie, fade out l'ancienne piste
+/// et fade in la nouvelle (crossfade 1.5 s).
 fn update_music_on_level_change(
     mut commands: Commands,
     tracks: Res<MusicTracks>,
     current_level: Res<CurrentLevel>,
-    settings: Res<Settings>,
-    existing: Query<Entity, With<MusicEntity>>,
+    mut existing: Query<&mut MusicEntity>,
 ) {
     if !current_level.is_changed() {
         return;
     }
-    // Pas de fade pour la simplicité — hard cut.
-    for e in &existing {
-        commands.entity(e).despawn();
+    // Marque les pistes en cours comme sortantes
+    for mut music in &mut existing {
+        if music.state != FadeState::FadingOut {
+            music.state = FadeState::FadingOut;
+            music.fade_t = 0.0;
+        }
     }
+    // Spawn la nouvelle en fade in
     commands.spawn((
-        MusicEntity,
+        MusicEntity {
+            state: FadeState::FadingIn,
+            fade_t: 0.0,
+        },
         AudioBundle {
             source: music_handle(&tracks, current_level.0),
             settings: PlaybackSettings {
                 mode: PlaybackMode::Loop,
-                volume: Volume::new(music_volume(&settings)),
+                volume: Volume::new(0.0),
                 ..default()
             },
         },
     ));
 }
 
+fn tick_music_fades(
+    mut commands: Commands,
+    time: Res<Time>,
+    settings: Res<Settings>,
+    mut q: Query<(Entity, &mut MusicEntity, &AudioSink)>,
+) {
+    let dt = time.delta_seconds();
+    let target_volume = music_volume(&settings);
+    for (entity, mut music, sink) in &mut q {
+        match music.state {
+            FadeState::FadingIn => {
+                music.fade_t += dt;
+                let t = (music.fade_t / FADE_DURATION).clamp(0.0, 1.0);
+                sink.set_volume(target_volume * t);
+                if t >= 1.0 {
+                    music.state = FadeState::Nominal;
+                }
+            }
+            FadeState::FadingOut => {
+                music.fade_t += dt;
+                let t = (1.0 - music.fade_t / FADE_DURATION).clamp(0.0, 1.0);
+                sink.set_volume(target_volume * t);
+                if music.fade_t >= FADE_DURATION {
+                    commands.entity(entity).despawn();
+                }
+            }
+            FadeState::Nominal => {}
+        }
+    }
+}
+
 /// Suit les changements de volume dans Settings (menu paramètres) et
-/// les applique en live sur la piste qui joue.
+/// les applique en live sur la piste qui joue (sauf pendant fade).
 fn update_music_volume(
     settings: Res<Settings>,
-    music_q: Query<&AudioSink, With<MusicEntity>>,
+    music_q: Query<(&AudioSink, &MusicEntity)>,
 ) {
     if !settings.is_changed() {
         return;
     }
     let v = music_volume(&settings);
-    for sink in &music_q {
-        sink.set_volume(v);
+    for (sink, music) in &music_q {
+        if music.state == FadeState::Nominal {
+            sink.set_volume(v);
+        }
     }
 }

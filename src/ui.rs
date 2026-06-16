@@ -169,6 +169,22 @@ enum DynamicLabel {
     SfxVolume,
 }
 
+/// Composant attaché à un slider bevel papyrus. Stocke quel volume il
+/// représente. Affiché comme bar fill dans une frame bois.
+#[derive(Component, Clone, Copy)]
+enum SliderKind {
+    Master,
+    Music,
+    Sfx,
+}
+
+#[derive(Component)]
+struct SliderFill;
+
+/// Composant attaché à un toggle tick papyrus.
+#[derive(Component)]
+struct FullscreenToggle;
+
 // =========================================================== Plugin ===
 
 pub struct UiPlugin;
@@ -568,6 +584,72 @@ fn spawn_dynamic_label(parent: &mut ChildBuilder, font: &UiFont, kind: DynamicLa
     ));
 }
 
+/// T4 — Tick papyrus : carré crème avec ✓ noir quand activé.
+fn spawn_tick_papyrus(parent: &mut ChildBuilder, font: &UiFont) {
+    parent
+        .spawn((
+            FullscreenToggle,
+            NodeBundle {
+                style: Style {
+                    width: Val::Px(32.0),
+                    height: Val::Px(32.0),
+                    border: UiRect::all(Val::Px(3.0)),
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    ..default()
+                },
+                background_color: PAPYRUS.into(),
+                border_color: WOOD_DARKEST.into(),
+                ..default()
+            },
+        ))
+        .with_children(|p| {
+            p.spawn(TextBundle::from_section(
+                "",
+                TextStyle {
+                    font: font.display.clone(),
+                    font_size: 26.0,
+                    color: WOOD_DARKEST,
+                },
+            ));
+        });
+}
+
+/// S4 — Bevel papyrus slider : cadre bois sombre avec fill bois clair
+/// graduel.
+fn spawn_bevel_slider(parent: &mut ChildBuilder, kind: SliderKind) {
+    parent
+        .spawn((
+            kind,
+            NodeBundle {
+                style: Style {
+                    width: Val::Px(200.0),
+                    height: Val::Px(20.0),
+                    border: UiRect::all(Val::Px(3.0)),
+                    overflow: Overflow::clip(),
+                    ..default()
+                },
+                background_color: WOOD_DARKEST.into(),
+                border_color: WOOD_DARK.into(),
+                ..default()
+            },
+        ))
+        .with_children(|p| {
+            p.spawn((
+                SliderFill,
+                NodeBundle {
+                    style: Style {
+                        width: Val::Percent(60.0),
+                        height: Val::Percent(100.0),
+                        ..default()
+                    },
+                    background_color: WOOD_LIGHT.into(),
+                    ..default()
+                },
+            ));
+        });
+}
+
 /// Reset le compteur + la sélection avant de spawner un écran.
 fn begin_screen(counter: &mut ResMut<ButtonCount>, selection: &mut ResMut<MenuSelection>) {
     counter.0 = 0;
@@ -605,7 +687,7 @@ fn spawn_main_menu(
         .id();
 
     commands.entity(root).with_children(|p| {
-        // Background : la scène rose à la Camille (camille-unknown-home).
+        // Background : la scène rose du menu principal.
         p.spawn(ImageBundle {
             style: Style {
                 position_type: PositionType::Absolute,
@@ -902,33 +984,31 @@ fn spawn_settings(
         })
         .with_children(|p| {
             let label_style = TextStyle {
-                font: font.bold.clone(),
-                font_size: 26.0,
-                color: TITLE_COLOR,
+                font: font.display.clone(),
+                font_size: 22.0,
+                color: WOOD_DARKEST,
             };
-            // Fullscreen
+            // T4 Tick papyrus pour Plein écran
             let s = label_style.clone();
             spawn_button_with_label(p, &mut counter, MenuAction::ToggleFullscreen, |p| {
                 p.spawn(TextBundle::from_section("Plein écran", s));
-                spawn_dynamic_label(p, font, DynamicLabel::Fullscreen);
+                spawn_tick_papyrus(p, font);
             });
-            // Master volume
+            // S4 Bevel papyrus pour les 3 volumes
             let s = label_style.clone();
             spawn_button_with_label(p, &mut counter, MenuAction::AdjustMaster(0.1), |p| {
                 p.spawn(TextBundle::from_section("Volume général", s));
-                spawn_dynamic_label(p, font, DynamicLabel::MasterVolume);
+                spawn_bevel_slider(p, SliderKind::Master);
             });
-            // Music volume
             let s = label_style.clone();
             spawn_button_with_label(p, &mut counter, MenuAction::AdjustMusic(0.1), |p| {
                 p.spawn(TextBundle::from_section("Musique", s));
-                spawn_dynamic_label(p, font, DynamicLabel::MusicVolume);
+                spawn_bevel_slider(p, SliderKind::Music);
             });
-            // SFX volume
             let s = label_style.clone();
             spawn_button_with_label(p, &mut counter, MenuAction::AdjustSfx(0.1), |p| {
                 p.spawn(TextBundle::from_section("Effets", s));
-                spawn_dynamic_label(p, font, DynamicLabel::SfxVolume);
+                spawn_bevel_slider(p, SliderKind::Sfx);
             });
 
             spawn_button(p, &mut counter, font, "Retour", MenuAction::GotoMainMenu);
@@ -974,10 +1054,6 @@ fn spawn_credits(
             ..default()
         })
         .with_children(|p| {
-            spawn_text(p, font, "Direction artistique inspirée par", 22.0, SUBTITLE_COLOR);
-            spawn_text(p, font, "Camille Unknown", 38.0, ACCENT_CYAN);
-            spawn_text(p, font, "artstation.com/camilleunknown", 18.0, HINT_COLOR);
-            spawn_text(p, font, "", 12.0, HINT_COLOR);
             spawn_text(p, font, "Moteur", 22.0, SUBTITLE_COLOR);
             spawn_text(p, font, "Bevy 0.14 — bevyengine.org", 22.0, ACCENT_AMBER);
             spawn_text(p, font, "", 12.0, HINT_COLOR);
@@ -1395,7 +1471,12 @@ fn trigger_action(
 fn sync_dynamic_labels(
     settings: Res<Settings>,
     mut q: Query<(&DynamicLabel, &mut Text)>,
+    mut toggles: Query<(&FullscreenToggle, &Children), Without<DynamicLabel>>,
+    mut toggle_texts: Query<&mut Text, (Without<DynamicLabel>, Without<SliderKind>)>,
+    mut sliders: Query<(&SliderKind, &Children), Without<DynamicLabel>>,
+    mut fills: Query<&mut Style, (With<SliderFill>, Without<DynamicLabel>)>,
 ) {
+    // Texte (fallback ancien système)
     for (kind, mut text) in &mut q {
         let value = match *kind {
             DynamicLabel::Fullscreen => {
@@ -1411,6 +1492,30 @@ fn sync_dynamic_labels(
             DynamicLabel::SfxVolume => format!("{}%", (settings.sfx_volume * 100.0) as u32),
         };
         text.sections[0].value = value;
+    }
+
+    // Toggle papyrus : ✓ si activé
+    for (_, children) in &mut toggles {
+        for child in children {
+            if let Ok(mut text) = toggle_texts.get_mut(*child) {
+                text.sections[0].value =
+                    if settings.fullscreen { "✓".to_string() } else { "".to_string() };
+            }
+        }
+    }
+
+    // Sliders : fill % selon volume
+    for (kind, children) in &mut sliders {
+        let value = match *kind {
+            SliderKind::Master => settings.master_volume,
+            SliderKind::Music => settings.music_volume,
+            SliderKind::Sfx => settings.sfx_volume,
+        };
+        for child in children {
+            if let Ok(mut style) = fills.get_mut(*child) {
+                style.width = Val::Percent((value * 100.0).clamp(0.0, 100.0));
+            }
+        }
     }
 }
 
@@ -1575,6 +1680,8 @@ fn update_inventory_hud(
                     Some(crate::throwables::ThrowableKind::Bomb) => "B".into(),
                     Some(crate::throwables::ThrowableKind::IceBlock) => "G".into(),
                     Some(crate::throwables::ThrowableKind::MagicPlatform) => "P".into(),
+                    Some(crate::throwables::ThrowableKind::Rock) => "C".into(),
+                    Some(crate::throwables::ThrowableKind::Torch) => "T".into(),
                     None => "".into(),
                 };
             }

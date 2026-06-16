@@ -1,5 +1,5 @@
 //! Générateur de sprites pixel art — direction artistique "nuit mystique"
-//! inspirée du travail de Camille Unknown (voir assets/inspirations/).
+//! (moodboard dans assets/inspirations/).
 //!
 //! Palette : dominantes teal/bleu nuit, silhouettes très sombres,
 //! accents cyan (magie, glow) et ambre (feu, lanternes). Le perso est
@@ -23,7 +23,7 @@ const SKIN_DK: Rgba<u8> = Rgba([140, 146, 174, 255]);
 const HAIR: Rgba<u8> = Rgba([232, 236, 250, 255]);
 const EYE: Rgba<u8> = Rgba([8, 8, 16, 255]);
 
-// Terre / sol — wine-pink foncé pour matcher camille-unknown-home
+// Terre / sol — wine-pink foncé pour matcher le ciel coucher
 const DIRT: Rgba<u8> = Rgba([84, 36, 60, 255]);
 const DIRT_DK: Rgba<u8> = Rgba([54, 20, 42, 255]);
 const DIRT_LT: Rgba<u8> = Rgba([122, 60, 86, 255]);
@@ -761,7 +761,7 @@ fn make_goal() {
 
 fn make_parallax_back() {
     // 512x320 : montagnes roses lointaines + nuages puffies. Ambiance
-    // camille-unknown-home appliquée au gameplay. Tilable en X.
+    // coucher de soleil appliquée au gameplay. Tilable en X.
     let mut img = RgbaImage::from_pixel(512, 320, TR);
 
     // Pétales / poussières en suspension dans la haute couche
@@ -844,7 +844,7 @@ fn make_parallax_mid() {
 }
 
 fn make_menu_background() {
-    // 1280x720 : reproduction du vibe de "camille-unknown-home".
+    // 1280x720 : vibe coucher de soleil rose pour l'écran-titre.
     // - Ciel rose en gradient
     // - Deux gros amas de nuages roses pâles (gauche + droite)
     // - Trois monolithes verticaux suspendus dans le ciel, semi-transparents
@@ -1062,7 +1062,7 @@ fn make_menu_background() {
 
 fn make_parallax_front() {
     // 512x180 : montagnes proches en wine sombre + pylônes silhouettes
-    // type camille-unknown-home.
+    // sous le ciel rose.
     let mut img = RgbaImage::from_pixel(512, 180, TR);
 
     let ground_y = 110;
@@ -1604,6 +1604,38 @@ fn make_forest_parallax() {
 
 // ========================================================= Enemies ===
 
+fn make_wraith() {
+    // 20x28 : silhouette spectrale drapée avec yeux rouges
+    let mut img = RgbaImage::from_pixel(20, 28, TR);
+    let body = Rgba([180, 196, 220, 200]);
+    let body_dk = Rgba([120, 138, 168, 220]);
+    let body_lt = Rgba([220, 232, 248, 220]);
+    let eye = Rgba([232, 48, 48, 255]);
+
+    for row in 0..8 {
+        let half = match row {
+            0 => 3, 1 => 5, 2 | 3 => 6,
+            _ => 7,
+        };
+        let y = row;
+        rect(&mut img, 10 - half, y, half * 2, 1, body);
+    }
+    put(&mut img, 7, 4, eye);
+    put(&mut img, 12, 4, eye);
+    for row in 0..18 {
+        let t = row as f32 / 18.0;
+        let half = (7.0 + t * 2.0) as i32;
+        let y = 8 + row;
+        rect(&mut img, 10 - half, y, half * 2, 1, body);
+    }
+    for x in 0..20 {
+        let h = ((x as f32 * 1.2).sin().abs() * 2.0) as i32;
+        rect(&mut img, x, 26 - h, 1, h + 2, body_dk);
+    }
+    hline(&mut img, 7, 1, 6, body_lt);
+    save(&img, "assets/sprites/enemy_wraith.png");
+}
+
 fn make_charger() {
     // 22x18 : boule cornue, taureau miniature qui fonce
     let mut img = RgbaImage::from_pixel(22, 18, TR);
@@ -1763,6 +1795,62 @@ fn make_projectile_magic() {
 
 // ====================================================== Throwables ===
 
+fn make_extra_throwables() {
+    // Caillou 10x10 : petit galet gris irrégulier
+    let mut rock = RgbaImage::from_pixel(10, 10, TR);
+    let rock_dk = Rgba([62, 56, 48, 255]);
+    let rock_mid = Rgba([108, 100, 88, 255]);
+    let rock_lt = Rgba([160, 152, 138, 255]);
+    for (x, y) in [
+        (3i32, 1i32), (4, 1), (5, 1), (6, 1),
+        (2, 2), (3, 2), (4, 2), (5, 2), (6, 2), (7, 2),
+        (1, 3), (2, 3), (3, 3), (4, 3), (5, 3), (6, 3), (7, 3), (8, 3),
+        (1, 4), (2, 4), (3, 4), (4, 4), (5, 4), (6, 4), (7, 4), (8, 4),
+        (1, 5), (2, 5), (3, 5), (4, 5), (5, 5), (6, 5), (7, 5), (8, 5),
+        (2, 6), (3, 6), (4, 6), (5, 6), (6, 6), (7, 6),
+        (3, 7), (4, 7), (5, 7), (6, 7),
+    ] {
+        put(&mut rock, x, y, rock_mid);
+    }
+    // Highlight
+    put(&mut rock, 3, 2, rock_lt);
+    put(&mut rock, 4, 2, rock_lt);
+    put(&mut rock, 2, 3, rock_lt);
+    // Shadow
+    put(&mut rock, 6, 6, rock_dk);
+    put(&mut rock, 7, 5, rock_dk);
+    put(&mut rock, 5, 7, rock_dk);
+    save(&rock, "assets/sprites/throwable_rock.png");
+
+    // Torche 14x22 : manche bois + flamme
+    let mut torch = RgbaImage::from_pixel(14, 22, TR);
+    let handle_dk = Rgba([56, 36, 20, 255]);
+    let handle = Rgba([108, 72, 40, 255]);
+    let flame_lt = Rgba([252, 220, 140, 255]);
+    let flame = Rgba([232, 168, 76, 255]);
+    let flame_dk = Rgba([164, 92, 32, 255]);
+    // Manche
+    rect(&mut torch, 5, 10, 4, 12, handle);
+    vline(&mut torch, 5, 10, 12, handle_dk);
+    hline(&mut torch, 5, 21, 4, handle_dk);
+    // Coupelle de retenue
+    rect(&mut torch, 3, 9, 8, 2, handle_dk);
+    rect(&mut torch, 4, 8, 6, 1, handle);
+    // Flamme (forme triangulaire)
+    for row in 0..8 {
+        let half = match row {
+            0 => 1, 1 | 2 => 2, 3 | 4 => 3, 5 => 2, 6 => 2, _ => 1,
+        };
+        let color = if row < 3 { flame_lt } else if row < 6 { flame } else { flame_dk };
+        let y = row;
+        rect(&mut torch, 7 - half, y, half * 2, 1, color);
+    }
+    // Cœur très clair
+    put(&mut torch, 6, 3, Rgba([255, 248, 224, 255]));
+    put(&mut torch, 7, 3, Rgba([255, 248, 224, 255]));
+    save(&torch, "assets/sprites/throwable_torch.png");
+}
+
 fn make_throwables() {
     // Bombe 12x12 : sphère noire avec mèche
     let mut bomb = RgbaImage::from_pixel(12, 12, TR);
@@ -1826,10 +1914,12 @@ fn main() {
     make_menu_background();
     make_items();
     make_throwables();
+    make_extra_throwables();
     make_projectile_magic();
     make_enemies();
     make_spitter_and_projectile();
     make_charger();
+    make_wraith();
     make_forest_tiles();
     make_forest_parallax();
     for palette in [&PALETTE_AMBER, &PALETTE_SANCTUARY, &PALETTE_DAWN] {

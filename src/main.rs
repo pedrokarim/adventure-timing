@@ -20,7 +20,7 @@ use bevy::prelude::*;
 const WINDOW_TITLE: &str = "Adventure Timing";
 const WINDOW_WIDTH: f32 = 1280.0;
 const WINDOW_HEIGHT: f32 = 720.0;
-// Ciel coucher rose pâle, ambiance camille-unknown-home.
+// Ciel coucher rose pâle.
 const SKY: Color = Color::srgb(0.94, 0.70, 0.74);
 
 fn main() {
