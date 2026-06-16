@@ -48,6 +48,10 @@ path = "examples/gen_assets.rs"
 name = "gen_audio"
 path = "examples/gen_audio.rs"
 
+[[example]]
+name = "gen_music"
+path = "examples/gen_music.rs"
+
 [profile.dev.package."*"]
 opt-level = 3
 

@@ -3,7 +3,8 @@
 //! `settings.master * settings.sfx`.
 
 use crate::save::Settings;
-use crate::states::{PlayerDied, PlayerWon};
+use crate::states::{GameState, PlayerDied, PlayerWon};
+use crate::world::{CurrentLevel, LevelId};
 use bevy::audio::{PlaybackMode, Volume};
 use bevy::prelude::*;
 
@@ -15,6 +16,15 @@ struct Sfx {
     checkpoint: Handle<AudioSource>,
     win: Handle<AudioSource>,
 }
+
+#[derive(Resource)]
+struct MusicTracks {
+    level_1: Handle<AudioSource>,
+    level_2: Handle<AudioSource>,
+}
+
+#[derive(Component)]
+struct MusicEntity;
 
 /// Évènement émis par le contrôleur du joueur quand il décolle (sol ou
 /// double saut). Le module effects écoute aussi `PlayerAirJumped` pour
@@ -49,11 +59,19 @@ impl Plugin for AudioPlugin {
             checkpoint: asset_server.load("sfx/checkpoint.wav"),
             win: asset_server.load("sfx/win.wav"),
         };
+        let music = MusicTracks {
+            level_1: asset_server.load("music/level_1.wav"),
+            level_2: asset_server.load("music/level_2.wav"),
+        };
         app.insert_resource(sfx)
+            .insert_resource(music)
             .add_event::<PlayerJumped>()
             .add_event::<PlayerAirJumped>()
             .add_event::<PlayerLanded>()
             .add_event::<CheckpointReached>()
+            .add_systems(OnEnter(GameState::Playing), start_music_for_level)
+            .add_systems(OnEnter(GameState::MainMenu), stop_music)
+            .add_systems(OnEnter(GameState::Win), stop_music)
             .add_systems(
                 Update,
                 (
@@ -62,6 +80,8 @@ impl Plugin for AudioPlugin {
                     play_death,
                     play_checkpoint,
                     play_win,
+                    update_music_on_level_change,
+                    update_music_volume,
                 ),
             );
     }
@@ -148,5 +168,91 @@ fn play_win(
     let volume = sfx_volume(&settings);
     for _ in events.read() {
         play_sound(&mut commands, sfx.win.clone(), volume);
+    }
+}
+
+// ============================================================ Music ===
+
+fn music_handle(tracks: &MusicTracks, level: LevelId) -> Handle<AudioSource> {
+    match level {
+        LevelId::PinkSunset => tracks.level_1.clone(),
+        LevelId::NightForest => tracks.level_2.clone(),
+    }
+}
+
+fn music_volume(settings: &Settings) -> f32 {
+    (settings.master_volume * settings.music_volume).clamp(0.0, 1.0)
+}
+
+fn start_music_for_level(
+    mut commands: Commands,
+    tracks: Res<MusicTracks>,
+    current_level: Res<CurrentLevel>,
+    settings: Res<Settings>,
+    existing: Query<Entity, With<MusicEntity>>,
+) {
+    for e in &existing {
+        commands.entity(e).despawn();
+    }
+    commands.spawn((
+        MusicEntity,
+        AudioBundle {
+            source: music_handle(&tracks, current_level.0),
+            settings: PlaybackSettings {
+                mode: PlaybackMode::Loop,
+                volume: Volume::new(music_volume(&settings)),
+                ..default()
+            },
+        },
+    ));
+}
+
+fn stop_music(mut commands: Commands, existing: Query<Entity, With<MusicEntity>>) {
+    for e in &existing {
+        commands.entity(e).despawn();
+    }
+}
+
+/// Quand le niveau change en cours de partie (transition après le goal),
+/// switche la piste musicale.
+fn update_music_on_level_change(
+    mut commands: Commands,
+    tracks: Res<MusicTracks>,
+    current_level: Res<CurrentLevel>,
+    settings: Res<Settings>,
+    existing: Query<Entity, With<MusicEntity>>,
+) {
+    if !current_level.is_changed() {
+        return;
+    }
+    // Pas de fade pour la simplicité — hard cut.
+    for e in &existing {
+        commands.entity(e).despawn();
+    }
+    commands.spawn((
+        MusicEntity,
+        AudioBundle {
+            source: music_handle(&tracks, current_level.0),
+            settings: PlaybackSettings {
+                mode: PlaybackMode::Loop,
+                volume: Volume::new(music_volume(&settings)),
+                ..default()
+            },
+        },
+    ));
+}
+
+/// Suit les changements de volume dans Settings (menu paramètres) et
+/// les applique en live sur la piste qui joue.
+fn update_music_volume(
+    settings: Res<Settings>,
+    music_q: Query<&AudioSink, With<MusicEntity>>,
+) {
+    if !settings.is_changed() {
+        return;
+    }
+    let v = music_volume(&settings);
+    for sink in &music_q {
+        sink.set_volume(v);
     }
 }
