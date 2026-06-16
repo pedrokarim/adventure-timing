@@ -1,0 +1,28 @@
+# Rust
+/target
+**/*.rs.bk
+*.pdb
+
+# Bevy dynamic linking artifacts
+*.so
+*.dylib
+*.dll
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Cargo lockfile : on le garde pour un binaire
+# (à supprimer de l'ignore explicitement pour la clarté)
+!Cargo.lock
+
+# Logs et profils
+*.log
+flamegraph.svg
+perf.data*
+
+# Bevy : assets temporaires éventuels
+assets/.tmp/
