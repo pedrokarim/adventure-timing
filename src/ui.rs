@@ -103,6 +103,9 @@ struct InventorySlot(usize);
 struct EffectsContainer;
 
 #[derive(Component)]
+struct HudWeapon;
+
+#[derive(Component)]
 struct TitleText;
 
 /// Marque un bouton et son action associée.
@@ -114,6 +117,7 @@ pub enum MenuAction {
     Restart,
     GotoHeroSelect,
     GotoLevelMap,
+    GotoTutorial,
     GotoSettings,
     GotoCredits,
     GotoMainMenu,
@@ -214,6 +218,8 @@ impl Plugin for UiPlugin {
             .add_systems(OnExit(GameState::HeroSelect), despawn_screen)
             .add_systems(OnEnter(GameState::LevelMap), spawn_level_map)
             .add_systems(OnExit(GameState::LevelMap), despawn_screen)
+            .add_systems(OnEnter(GameState::Tutorial), spawn_tutorial)
+            .add_systems(OnExit(GameState::Tutorial), despawn_screen)
             .add_systems(OnEnter(GameState::Settings), spawn_settings)
             .add_systems(OnExit(GameState::Settings), exit_settings)
             .add_systems(OnEnter(GameState::Credits), spawn_credits)
@@ -241,6 +247,7 @@ impl Plugin for UiPlugin {
                     tick_toasts,
                     update_inventory_hud.run_if(in_state(GameState::Playing)),
                     update_effects_hud.run_if(in_state(GameState::Playing)),
+                    update_weapon_hud.run_if(in_state(GameState::Playing)),
                 ),
             );
     }
@@ -408,6 +415,29 @@ fn setup_hud(mut commands: Commands, font: Res<UiFont>) {
                 flex_direction: FlexDirection::Column,
                 row_gap: Val::Px(4.0),
                 align_items: AlignItems::FlexEnd,
+                ..default()
+            },
+            ..default()
+        },
+    ));
+
+    // HUD de l'arme courante (au-dessus de l'inventaire)
+    commands.spawn((
+        HudTag,
+        HudWeapon,
+        TextBundle {
+            text: Text::from_section(
+                "Arme : Epee",
+                TextStyle {
+                    font: font.display.clone(),
+                    font_size: 18.0,
+                    color: GOLD,
+                },
+            ),
+            style: Style {
+                position_type: PositionType::Absolute,
+                bottom: Val::Px(78.0),
+                right: Val::Px(20.0),
                 ..default()
             },
             ..default()
@@ -770,6 +800,7 @@ fn spawn_main_menu(
             }
             spawn_button(p, &mut counter, font, "Nouvelle partie", MenuAction::GotoHeroSelect);
             spawn_button(p, &mut counter, font, "Carte du voyage", MenuAction::GotoLevelMap);
+            spawn_button(p, &mut counter, font, "Comment jouer", MenuAction::GotoTutorial);
             spawn_button(p, &mut counter, font, "Paramètres", MenuAction::GotoSettings);
             spawn_button(p, &mut counter, font, "Crédits", MenuAction::GotoCredits);
             spawn_button(p, &mut counter, font, "Quitter", MenuAction::Quit);
@@ -993,6 +1024,136 @@ fn spawn_path_dots(parent: &mut ChildBuilder) {
                     },
                     background_color: WOOD_DARK.into(),
                     ..default()
+                });
+            }
+        });
+}
+
+// ==================================================== Tutorial ===
+
+fn spawn_tutorial(
+    mut commands: Commands,
+    mut counter: ResMut<ButtonCount>,
+    mut selection: ResMut<MenuSelection>,
+    font: Res<UiFont>,
+) {
+    begin_screen(&mut counter, &mut selection);
+    let font = font.into_inner();
+    let root = spawn_overlay(&mut commands);
+
+    commands.entity(root).with_children(|p| {
+        spawn_title(p, font, "Comment jouer");
+
+        // Sections en colonne
+        p.spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Column,
+                row_gap: Val::Px(14.0),
+                margin: UiRect::vertical(Val::Px(20.0)),
+                max_width: Val::Px(720.0),
+                align_items: AlignItems::FlexStart,
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|p| {
+            tuto_section(p, font, "Déplacement", &[
+                ("ZQSD / fleches", "bouger"),
+                ("Espace / W / fleche haut", "saut (double ou triple selon heros)"),
+            ]);
+            tuto_section(p, font, "Combat", &[
+                ("F (maintenir + relacher)", "epee chargee : x1 a x3 degats"),
+                ("Touches 1 a 6", "changer d'arme (Dague, Baton, Epee, Arc, Marteau, Boomerang)"),
+                ("Bas + F en saut", "pogostick (rebond sur ennemi)"),
+            ]);
+            tuto_section(p, font, "Inventaire (les carres en bas a droite)", &[
+                ("X ou J", "utiliser l'item selectionne"),
+                ("Tab", "cycler la selection (3 slots)"),
+                ("", "B = Bombe, G = Glace, P = Plateforme, C = Caillou, T = Torche..."),
+            ]);
+            tuto_section(p, font, "HUD", &[
+                ("Coeurs", "PV (3 a 4 selon heros, mort a 0)"),
+                ("Or Niveau X/Y", "etape courante sur 5"),
+                ("Arme : XX", "arme active + flèches restantes pour l'arc"),
+                ("Bandes a droite", "effets actifs (invul, slowmo, etc.)"),
+            ]);
+            tuto_section(p, font, "Objets sur le terrain", &[
+                ("Drapeaux jaunes", "checkpoints (sauvegardent ta position)"),
+                ("Drapeau rose/ambre", "fin du niveau, debloque le suivant"),
+                ("Pics", "1 PV de degat"),
+                ("Coeur rouge", "+1 PV"),
+                ("Petale memoire violet", "ignore la prochaine mort"),
+            ]);
+            tuto_section(p, font, "Ennemis", &[
+                ("Crawler / Flyer / Charger", "stompables (saute dessus, relance le double saut)"),
+                ("Spitter (champignon)", "stompable, mais tire des projectiles"),
+                ("Wraith spectral", "traverse les murs, NON stompable, fuis ou frappe"),
+            ]);
+        });
+
+        p.spawn(NodeBundle {
+            style: Style {
+                margin: UiRect::top(Val::Px(8.0)),
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|p| {
+            spawn_button(p, &mut counter, font, "Retour au menu", MenuAction::GotoMainMenu);
+        });
+    });
+}
+
+fn tuto_section(parent: &mut ChildBuilder, font: &UiFont, title: &str, rows: &[(&str, &str)]) {
+    parent
+        .spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Column,
+                row_gap: Val::Px(4.0),
+                padding: UiRect::all(Val::Px(10.0)),
+                border: UiRect::all(Val::Px(2.0)),
+                width: Val::Percent(100.0),
+                ..default()
+            },
+            background_color: PAPYRUS.into(),
+            border_color: WOOD_DARK.into(),
+            ..default()
+        })
+        .with_children(|p| {
+            p.spawn(TextBundle::from_section(
+                title.to_string(),
+                TextStyle {
+                    font: font.display.clone(),
+                    font_size: 22.0,
+                    color: WOOD_DARKEST,
+                },
+            ));
+            for (key, desc) in rows {
+                p.spawn(NodeBundle {
+                    style: Style {
+                        flex_direction: FlexDirection::Row,
+                        column_gap: Val::Px(12.0),
+                        ..default()
+                    },
+                    ..default()
+                })
+                .with_children(|p| {
+                    p.spawn(TextBundle::from_section(
+                        key.to_string(),
+                        TextStyle {
+                            font: font.display.clone(),
+                            font_size: 14.0,
+                            color: GOLD,
+                        },
+                    ));
+                    p.spawn(TextBundle::from_section(
+                        desc.to_string(),
+                        TextStyle {
+                            font: font.regular.clone(),
+                            font_size: 14.0,
+                            color: WOOD_DARK,
+                        },
+                    ));
                 });
             }
         });
@@ -1648,6 +1809,7 @@ fn trigger_action(
         MenuAction::Restart => next.set(GameState::Playing),
         MenuAction::GotoHeroSelect => next.set(GameState::HeroSelect),
         MenuAction::GotoLevelMap => next.set(GameState::LevelMap),
+        MenuAction::GotoTutorial => next.set(GameState::Tutorial),
         MenuAction::GotoSettings => next.set(GameState::Settings),
         MenuAction::GotoCredits => next.set(GameState::Credits),
         MenuAction::GotoMainMenu => next.set(GameState::MainMenu),
@@ -1898,17 +2060,40 @@ fn update_inventory_hud(
 
         for child in children {
             if let Ok(mut text) = texts.get_mut(*child) {
+                use crate::throwables::ThrowableKind as TK;
                 text.sections[0].value = match kind {
-                    Some(crate::throwables::ThrowableKind::Bomb) => "B".into(),
-                    Some(crate::throwables::ThrowableKind::IceBlock) => "G".into(),
-                    Some(crate::throwables::ThrowableKind::MagicPlatform) => "P".into(),
-                    Some(crate::throwables::ThrowableKind::Rock) => "C".into(),
-                    Some(crate::throwables::ThrowableKind::Torch) => "T".into(),
+                    Some(TK::Bomb) => "B".into(),
+                    Some(TK::IceBlock) => "G".into(),
+                    Some(TK::MagicPlatform) => "P".into(),
+                    Some(TK::Rock) => "C".into(),
+                    Some(TK::Torch) => "T".into(),
+                    Some(TK::Boomerang) => "Bm".into(),
+                    Some(TK::Shield) => "Bc".into(),
+                    Some(TK::Trap) => "Pi".into(),
+                    Some(TK::Marker) => "Mk".into(),
+                    Some(TK::Turret) => "To".into(),
                     None => "".into(),
                 };
             }
         }
     }
+}
+
+// ====================================================== Arme ===
+
+fn update_weapon_hud(
+    weapon: Res<crate::weapons::CurrentWeapon>,
+    state: Res<crate::weapons::WeaponState>,
+    mut q: Query<&mut Text, With<HudWeapon>>,
+) {
+    let Ok(mut text) = q.get_single_mut() else {
+        return;
+    };
+    let suffix = match weapon.0 {
+        crate::weapons::WeaponKind::Bow => format!("  ({} fleches)", state.arrows),
+        _ => String::new(),
+    };
+    text.sections[0].value = format!("Arme : {}{}", weapon.0.label(), suffix);
 }
 
 // ====================================================== Effets actifs ===

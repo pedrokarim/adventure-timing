@@ -1774,6 +1774,24 @@ fn make_enemies() {
 
 // ====================================================== Projectiles ===
 
+fn make_arrow() {
+    // 20x6 : flèche en bois avec pointe et fletching
+    let mut img = RgbaImage::from_pixel(20, 6, TR);
+    let wood = Rgba([180, 100, 50, 255]);
+    let metal = Rgba([180, 180, 184, 255]);
+    let feather = Rgba([232, 168, 76, 255]);
+    // Corps
+    rect(&mut img, 4, 2, 12, 2, wood);
+    // Pointe
+    rect(&mut img, 16, 2, 3, 2, metal);
+    put(&mut img, 19, 3, metal);
+    // Fletching
+    rect(&mut img, 0, 1, 4, 4, feather);
+    put(&mut img, 0, 0, feather);
+    put(&mut img, 0, 5, feather);
+    save(&img, "assets/sprites/projectile_arrow.png");
+}
+
 fn make_projectile_magic() {
     // 18x10 : éclair de magie cyan avec halo
     let mut img = RgbaImage::from_pixel(18, 10, TR);
@@ -1794,6 +1812,76 @@ fn make_projectile_magic() {
 }
 
 // ====================================================== Throwables ===
+
+fn make_full_throwables() {
+    // Boomerang 14x14 : X stylisé en bois
+    let mut boom = RgbaImage::from_pixel(14, 14, TR);
+    let wood = Rgba([180, 100, 50, 255]);
+    let wood_dk = Rgba([108, 56, 22, 255]);
+    let wood_lt = Rgba([232, 168, 76, 255]);
+    // Branche \\
+    for i in 0..10 {
+        put(&mut boom, 2 + i, 2 + i, wood);
+        put(&mut boom, 3 + i, 2 + i, wood);
+    }
+    // Branche //
+    for i in 0..10 {
+        put(&mut boom, 11 - i, 2 + i, wood);
+        put(&mut boom, 10 - i, 2 + i, wood);
+    }
+    put(&mut boom, 6, 6, wood_lt);
+    put(&mut boom, 7, 6, wood_lt);
+    put(&mut boom, 6, 7, wood_dk);
+    put(&mut boom, 7, 7, wood_dk);
+    save(&boom, "assets/sprites/throwable_boomerang.png");
+
+    // Bouclier 8x64 : mur vertical translucide cyan
+    let mut shield = RgbaImage::from_pixel(8, 64, TR);
+    rect(&mut shield, 0, 0, 8, 64, Rgba([130, 200, 240, 130]));
+    rect(&mut shield, 1, 0, 6, 64, Rgba([180, 224, 248, 100]));
+    vline(&mut shield, 0, 0, 64, Rgba([130, 200, 240, 220]));
+    vline(&mut shield, 7, 0, 64, Rgba([130, 200, 240, 220]));
+    save(&shield, "assets/sprites/throwable_shield.png");
+
+    // Piège 28x8 : ligne dentée au sol
+    let mut trap = RgbaImage::from_pixel(28, 8, TR);
+    rect(&mut trap, 0, 4, 28, 4, Rgba([60, 30, 22, 255]));
+    // Dents pointues
+    for i in 0..7 {
+        let x = i * 4;
+        rect(&mut trap, x, 2, 1, 2, Rgba([180, 180, 184, 255]));
+        rect(&mut trap, x + 1, 1, 1, 1, Rgba([220, 220, 224, 255]));
+        rect(&mut trap, x + 2, 2, 1, 2, Rgba([180, 180, 184, 255]));
+    }
+    save(&trap, "assets/sprites/throwable_trap.png");
+
+    // Marqueur 16x24 : drapeau triangulaire ambre sur mât
+    let mut marker = RgbaImage::from_pixel(16, 24, TR);
+    rect(&mut marker, 7, 0, 2, 24, Rgba([60, 36, 20, 255]));
+    rect(&mut marker, 6, 23, 4, 1, Rgba([60, 36, 20, 255]));
+    // Drapeau triangulaire
+    for row in 0..8 {
+        let width = 8 - row;
+        rect(&mut marker, 9, 2 + row, width, 1, Rgba([232, 168, 76, 255]));
+    }
+    save(&marker, "assets/sprites/throwable_marker.png");
+
+    // Tourelle 18x22 : pied stable + tube qui sort
+    let mut turret = RgbaImage::from_pixel(18, 22, TR);
+    // Pied
+    rect(&mut turret, 3, 18, 12, 4, Rgba([60, 60, 70, 255]));
+    rect(&mut turret, 4, 17, 10, 1, Rgba([100, 100, 110, 255]));
+    // Base ronde
+    rect(&mut turret, 5, 10, 8, 7, Rgba([80, 80, 90, 255]));
+    rect(&mut turret, 6, 8, 6, 2, Rgba([100, 100, 110, 255]));
+    // Tube canon (horizontal)
+    rect(&mut turret, 8, 12, 10, 3, Rgba([60, 60, 70, 255]));
+    put(&mut turret, 17, 13, Rgba([232, 168, 76, 255])); // sortie ambre
+    // Détail rouge (caméra ?)
+    put(&mut turret, 8, 11, Rgba([220, 60, 60, 255]));
+    put(&mut turret, 9, 11, Rgba([220, 60, 60, 255]));
+    save(&turret, "assets/sprites/throwable_turret.png");
+}
 
 fn make_extra_throwables() {
     // Caillou 10x10 : petit galet gris irrégulier
@@ -1915,7 +2003,9 @@ fn main() {
     make_items();
     make_throwables();
     make_extra_throwables();
+    make_full_throwables();
     make_projectile_magic();
+    make_arrow();
     make_enemies();
     make_spitter_and_projectile();
     make_charger();

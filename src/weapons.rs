@@ -11,13 +11,17 @@ use crate::player::Player;
 use crate::states::GameState;
 use bevy::prelude::*;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum WeaponKind {
     Dagger,
     MagicStaff,
-    /// Épée chargée : maintenir F charge le coup, relâcher pour frapper
-    /// avec un multiplicateur de dégâts (jusqu'à x3 après 1.2 s).
     Sword,
+    /// Arc : long range, tire une flèche, consomme arrow_count
+    Bow,
+    /// Marteau : lent, énorme hitbox, gros knockback
+    Hammer,
+    /// Boomerang d'arme : projectile qui revient au joueur
+    Boomerang,
 }
 
 impl WeaponKind {
@@ -26,6 +30,9 @@ impl WeaponKind {
             WeaponKind::Dagger => "Dague",
             WeaponKind::MagicStaff => "Baton magique",
             WeaponKind::Sword => "Epee",
+            WeaponKind::Bow => "Arc",
+            WeaponKind::Hammer => "Marteau",
+            WeaponKind::Boomerang => "Boomerang",
         }
     }
 }
@@ -43,7 +50,11 @@ pub struct WeaponState {
     pub combo_window: f32,
     /// Charge en cours pour l'épée (0..=1.2 s).
     pub sword_charge: f32,
+    /// Flèches restantes pour l'arc. Rechargées à chaque checkpoint.
+    pub arrows: u32,
 }
+
+const MAX_ARROWS: u32 = 5;
 
 /// Hitbox d'attaque mêlée. Spawnée pour ~150 ms puis despawn.
 #[derive(Component)]
@@ -78,15 +89,20 @@ pub struct WeaponsPlugin;
 impl Plugin for WeaponsPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(CurrentWeapon(WeaponKind::Sword))
-            .init_resource::<WeaponState>()
+            .insert_resource(WeaponState {
+                arrows: MAX_ARROWS,
+                ..default()
+            })
             .add_event::<WeaponHitEnemy>()
             .add_systems(
                 Update,
                 (
                     tick_weapon_state,
+                    handle_weapon_switch,
                     handle_attack_input,
                     tick_attack_hitboxes,
                     tick_projectiles,
+                    refill_arrows_on_checkpoint,
                 )
                     .run_if(in_state(GameState::Playing)),
             );
@@ -121,6 +137,7 @@ fn handle_attack_input(
     } else {
         keys.just_pressed(KeyCode::KeyF)
     };
+    let _ = time; // utilisé seulement pour la charge épée
     if !trigger {
         return;
     }
@@ -169,6 +186,62 @@ fn handle_attack_input(
             let pos = t.translation.truncate() + Vec2::new(20.0 * dir, 4.0);
             spawn_projectile(&mut commands, &asset_server, pos, dir);
             state.cooldown = 0.45;
+        }
+        WeaponKind::Bow => {
+            if state.arrows == 0 {
+                return;
+            }
+            state.arrows -= 1;
+            let pos = t.translation.truncate() + Vec2::new(20.0 * dir, 4.0);
+            commands.spawn((
+                Projectile { damage: 2, remaining: 1.5 },
+                crate::physics::Velocity(Vec2::new(540.0 * dir, 0.0)),
+                crate::physics::NoGravity,
+                crate::physics::Collider::new(Vec2::new(20.0, 6.0)),
+                SpriteBundle {
+                    texture: asset_server.load("sprites/projectile_arrow.png"),
+                    sprite: Sprite {
+                        custom_size: Some(Vec2::new(20.0, 6.0)),
+                        flip_x: dir < 0.0,
+                        ..default()
+                    },
+                    transform: Transform::from_translation(pos.extend(2.0)),
+                    ..default()
+                },
+            ));
+            state.cooldown = 0.40;
+        }
+        WeaponKind::Hammer => {
+            let pos = t.translation.truncate() + Vec2::new(28.0 * dir, 0.0);
+            spawn_hitbox(
+                &mut commands,
+                pos,
+                Vec2::new(48.0, 48.0),
+                3,
+                Vec2::new(400.0 * dir, 200.0),
+                false,
+            );
+            state.cooldown = 0.65;
+        }
+        WeaponKind::Boomerang => {
+            let pos = t.translation.truncate() + Vec2::new(16.0 * dir, 4.0);
+            commands.spawn((
+                crate::throwables::BoomerangThrow { age: 0.0 },
+                Projectile { damage: 1, remaining: 2.0 },
+                crate::physics::Velocity(Vec2::new(420.0 * dir, 60.0)),
+                crate::physics::NoGravity,
+                crate::physics::Collider::new(Vec2::splat(14.0)),
+                SpriteBundle {
+                    texture: asset_server.load("sprites/throwable_boomerang.png"),
+                    sprite: Sprite {
+                        custom_size: Some(Vec2::splat(14.0)),
+                        ..default()
+                    },
+                    transform: Transform::from_translation(pos.extend(2.0)),
+                    ..default()
+                },
+            ));
+            state.cooldown = 0.60;
         }
         WeaponKind::Sword => {
             // Multiplicateur de dégâts : x1 (instant) → x3 (1.2 s chargé)
@@ -244,6 +317,30 @@ fn spawn_projectile(commands: &mut Commands, asset_server: &AssetServer, pos: Ve
             ..default()
         },
     ));
+}
+
+/// Touches 1..=6 pour switcher d'arme rapidement.
+fn handle_weapon_switch(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut weapon: ResMut<CurrentWeapon>,
+) {
+    if keys.just_pressed(KeyCode::Digit1) { weapon.0 = WeaponKind::Dagger; }
+    if keys.just_pressed(KeyCode::Digit2) { weapon.0 = WeaponKind::MagicStaff; }
+    if keys.just_pressed(KeyCode::Digit3) { weapon.0 = WeaponKind::Sword; }
+    if keys.just_pressed(KeyCode::Digit4) { weapon.0 = WeaponKind::Bow; }
+    if keys.just_pressed(KeyCode::Digit5) { weapon.0 = WeaponKind::Hammer; }
+    if keys.just_pressed(KeyCode::Digit6) { weapon.0 = WeaponKind::Boomerang; }
+}
+
+/// Recharge les flèches de l'arc à pleine capa quand un checkpoint est
+/// activé.
+fn refill_arrows_on_checkpoint(
+    mut events: EventReader<crate::audio::CheckpointReached>,
+    mut state: ResMut<WeaponState>,
+) {
+    for _ in events.read() {
+        state.arrows = MAX_ARROWS;
+    }
 }
 
 fn tick_attack_hitboxes(
