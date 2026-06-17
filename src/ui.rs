@@ -1649,6 +1649,8 @@ fn button_interaction(
     mut selected_hero: ResMut<SelectedHero>,
     mut save_data: ResMut<SaveData>,
     mut current_level: ResMut<crate::world::CurrentLevel>,
+    mut tutorial_mode: ResMut<crate::world::TutorialMode>,
+    mut level_dirty: ResMut<crate::world::LevelDirty>,
 ) {
     for (interaction, action, index, mut bg, mut border, locked_bg) in &mut q {
         match *interaction {
@@ -1668,6 +1670,8 @@ fn button_interaction(
                     &mut selected_hero,
                     &mut save_data,
                     &mut current_level,
+                    &mut tutorial_mode,
+                    &mut level_dirty,
                 );
             }
             Interaction::Hovered => {
@@ -1714,6 +1718,8 @@ fn keyboard_navigation(
     mut selected_hero: ResMut<SelectedHero>,
     mut save_data: ResMut<SaveData>,
     mut current_level: ResMut<crate::world::CurrentLevel>,
+    mut tutorial_mode: ResMut<crate::world::TutorialMode>,
+    mut level_dirty: ResMut<crate::world::LevelDirty>,
 ) {
     if counter.0 == 0 {
         return;
@@ -1774,6 +1780,8 @@ fn keyboard_navigation(
                     &mut selected_hero,
                     &mut save_data,
                     &mut current_level,
+                    &mut tutorial_mode,
+                    &mut level_dirty,
                 );
                 return;
             }
@@ -1781,6 +1789,7 @@ fn keyboard_navigation(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 #[allow(clippy::too_many_arguments)]
 fn trigger_action(
     action: MenuAction,
@@ -1792,11 +1801,14 @@ fn trigger_action(
     selected_hero: &mut ResMut<SelectedHero>,
     save_data: &mut ResMut<SaveData>,
     current_level: &mut ResMut<crate::world::CurrentLevel>,
+    tutorial_mode: &mut ResMut<crate::world::TutorialMode>,
+    level_dirty: &mut ResMut<crate::world::LevelDirty>,
 ) {
     match action {
         MenuAction::StartNewGame | MenuAction::Continue | MenuAction::ConfirmHero => {
-            // Démarrer une partie remet le niveau à 1.
             current_level.0 = crate::world::LevelId::default();
+            tutorial_mode.0 = false;
+            level_dirty.0 = true;
             save_data.selected_hero = selected_hero.0;
             crate::save::save_data(save_data);
             next.set(GameState::Playing);
@@ -1809,18 +1821,25 @@ fn trigger_action(
         MenuAction::Restart => next.set(GameState::Playing),
         MenuAction::GotoHeroSelect => next.set(GameState::HeroSelect),
         MenuAction::GotoLevelMap => next.set(GameState::LevelMap),
-        MenuAction::GotoTutorial => next.set(GameState::Tutorial),
+        MenuAction::GotoTutorial => {
+            tutorial_mode.0 = true;
+            level_dirty.0 = true;
+            next.set(GameState::Playing);
+        }
         MenuAction::GotoSettings => next.set(GameState::Settings),
         MenuAction::GotoCredits => next.set(GameState::Credits),
         MenuAction::GotoMainMenu => next.set(GameState::MainMenu),
         MenuAction::SelectLevel(level) => {
             current_level.0 = level;
+            tutorial_mode.0 = false;
+            level_dirty.0 = true;
             next.set(GameState::Playing);
         }
         MenuAction::SelectHero(hero) => {
             selected_hero.0 = hero;
-            // Activer une carte démarre directement la partie au niveau 1.
             current_level.0 = crate::world::LevelId::default();
+            tutorial_mode.0 = false;
+            level_dirty.0 = true;
             save_data.selected_hero = hero;
             crate::save::save_data(save_data);
             next.set(GameState::Playing);

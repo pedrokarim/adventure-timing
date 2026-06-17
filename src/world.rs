@@ -126,6 +126,16 @@ impl LevelId {
 #[derive(Resource, Clone, Copy, Default, Debug)]
 pub struct CurrentLevel(pub LevelId);
 
+/// Mode tutoriel : on charge une géométrie d'apprentissage au lieu du
+/// niveau normal, et le drapeau de fin renvoie au menu.
+#[derive(Resource, Default, Debug)]
+pub struct TutorialMode(pub bool);
+
+/// Flag : il faut rebuild la géométrie du niveau (changement de niveau,
+/// de héros, ou de mode tuto). Vérifié dans `rebuild_dirty_level`.
+#[derive(Resource, Default, Debug)]
+pub struct LevelDirty(pub bool);
+
 /// Marqueur de toutes les entités spawnées par le niveau (tiles, hazards,
 /// checkpoints, goal, parallax). Permet de tout despawn pour transition.
 #[derive(Component)]
@@ -149,8 +159,44 @@ pub struct WorldPlugin;
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<CurrentLevel>()
+            .init_resource::<TutorialMode>()
+            .init_resource::<LevelDirty>()
             .add_systems(Startup, spawn_level)
-            .add_systems(Update, handle_level_transition);
+            .add_systems(Update, (rebuild_dirty_level, handle_level_transition).chain());
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn rebuild_dirty_level(
+    mut dirty: ResMut<LevelDirty>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    tutorial: Res<TutorialMode>,
+    current_level: Res<CurrentLevel>,
+    mut clear_color: ResMut<ClearColor>,
+    level_entities: Query<Entity, With<LevelEntity>>,
+    mut player_q: Query<&mut Transform, With<crate::player::Player>>,
+    mut respawn_point: ResMut<crate::level::RespawnPoint>,
+) {
+    if !dirty.0 {
+        return;
+    }
+    dirty.0 = false;
+    for e in &level_entities {
+        commands.entity(e).despawn_recursive();
+    }
+    if let Ok(mut t) = player_q.get_single_mut() {
+        t.translation.x = PLAYER_SPAWN.x;
+        t.translation.y = PLAYER_SPAWN.y;
+    }
+    respawn_point.0 = PLAYER_SPAWN;
+    if tutorial.0 {
+        clear_color.0 = LevelId::PinkSunset.sky();
+        spawn_tutorial_geometry(&mut commands, &asset_server);
+    } else {
+        clear_color.0 = current_level.0.sky();
+        spawn_level_inline(&mut commands, &asset_server, current_level.0);
+        crate::parallax::spawn_parallax_layers(&mut commands, &asset_server, current_level.0);
     }
 }
 
@@ -158,8 +204,15 @@ fn spawn_level(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     current_level: Res<CurrentLevel>,
+    tutorial: Res<TutorialMode>,
     mut clear_color: ResMut<ClearColor>,
 ) {
+    if tutorial.0 {
+        clear_color.0 = LevelId::PinkSunset.sky();
+        spawn_tutorial_geometry(&mut commands, &asset_server);
+        return;
+    }
+
     let level = current_level.0;
     clear_color.0 = level.sky();
 
@@ -263,6 +316,7 @@ fn spawn_solid(
 fn handle_level_transition(
     mut events: EventReader<crate::states::PlayerWon>,
     mut current_level: ResMut<CurrentLevel>,
+    mut tutorial: ResMut<TutorialMode>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut clear_color: ResMut<ClearColor>,
@@ -276,6 +330,25 @@ fn handle_level_transition(
         return;
     }
     events.clear();
+
+    // En tuto, le goal renvoie au menu principal.
+    if tutorial.0 {
+        tutorial.0 = false;
+        for e in &level_entities {
+            commands.entity(e).despawn_recursive();
+        }
+        if let Ok(mut t) = player_q.get_single_mut() {
+            t.translation.x = PLAYER_SPAWN.x;
+            t.translation.y = PLAYER_SPAWN.y;
+        }
+        respawn_point.0 = PLAYER_SPAWN;
+        // Respawn le niveau 1 normal en silence pour l'état suivant
+        clear_color.0 = current_level.0.sky();
+        spawn_level_inline(&mut commands, &asset_server, current_level.0);
+        crate::parallax::spawn_parallax_layers(&mut commands, &asset_server, current_level.0);
+        next_state.set(crate::states::GameState::MainMenu);
+        return;
+    }
 
     if let Some(next) = current_level.0.next() {
         current_level.0 = next;
@@ -303,6 +376,87 @@ fn handle_level_transition(
         }
         next_state.set(crate::states::GameState::Win);
     }
+}
+
+/// Géométrie du niveau tutoriel : flat, calme, avec des annotations
+/// flottantes qui expliquent chaque mécanique au fur et à mesure.
+fn spawn_tutorial_geometry(commands: &mut Commands, asset_server: &AssetServer) {
+    use crate::items::{spawn_item, ItemKind};
+    use crate::level::{spawn_checkpoint, spawn_goal, spawn_spike_field};
+
+    let level = LevelId::PinkSunset;
+
+    // Sol large
+    spawn_solid(commands, asset_server, level, Vec2::new(0.0, -320.0), Vec2::new(3200.0, 80.0), Tile::Ground);
+
+    // Annotations
+    let annotations: &[(Vec2, &str)] = &[
+        (Vec2::new(-700.0, -200.0), "Bienvenue !\nZQSD ou fleches pour bouger"),
+        (Vec2::new(-380.0, -200.0), "Espace pour sauter"),
+        (Vec2::new(-100.0, -150.0), "Maintiens Espace pour\nun saut plus haut"),
+        (Vec2::new(200.0, -80.0), "Double saut en l'air\n(re-Espace en saut)"),
+        (Vec2::new(500.0, -200.0), "Coeur rouge = +1 PV"),
+        (Vec2::new(800.0, -200.0), "Pic blanc = -1 PV\n(saute par-dessus)"),
+        (Vec2::new(1100.0, -200.0), "Drapeau jaune =\ncheckpoint (autosave)"),
+        (Vec2::new(1400.0, -200.0), "Ennemi : F pour\nattaquer (epee)"),
+        (Vec2::new(1700.0, -150.0), "Touches 1-6 :\nchanger d'arme"),
+        (Vec2::new(2000.0, -150.0), "X ou J : utiliser\nl'item d'inventaire"),
+        (Vec2::new(2300.0, -200.0), "Drapeau de fin =\nretour au menu"),
+    ];
+    for (pos, text) in annotations {
+        spawn_tutorial_sign(commands, *pos, text);
+    }
+
+    // Plateformes pour pratiquer le saut
+    spawn_solid(commands, asset_server, level, Vec2::new(-180.0, -200.0), Vec2::new(80.0, 24.0), Tile::Platform);
+    spawn_solid(commands, asset_server, level, Vec2::new(0.0, -140.0), Vec2::new(80.0, 24.0), Tile::Platform);
+    spawn_solid(commands, asset_server, level, Vec2::new(200.0, -120.0), Vec2::new(80.0, 24.0), Tile::Platform);
+
+    // Coeur à ramasser
+    spawn_item(commands, asset_server, ItemKind::Heart, Vec2::new(500.0, -250.0));
+
+    // Petits pics
+    spawn_spike_field(commands, asset_server, Vec2::new(800.0, -268.0), 96.0);
+
+    // Checkpoint
+    spawn_checkpoint(commands, asset_server, Vec2::new(1100.0, -240.0), Vec2::new(1100.0, -240.0));
+
+    // Ennemi crawler
+    crate::enemies::spawn_enemy(
+        commands,
+        asset_server,
+        crate::enemies::EnemyKind::Crawler,
+        Vec2::new(1400.0, -260.0),
+        1330.0..1480.0,
+    );
+
+    // Drapeau de fin
+    spawn_goal(commands, asset_server, Vec2::new(2400.0, -224.0));
+    spawn_solid(commands, asset_server, level, Vec2::new(2480.0, -240.0), Vec2::new(40.0, 80.0), Tile::Wall);
+}
+
+/// Petit panneau flottant en monde-space pour les annotations du tuto.
+fn spawn_tutorial_sign(commands: &mut Commands, pos: Vec2, text: &str) {
+    use bevy::text::Text2dBounds;
+    commands.spawn((
+        LevelEntity,
+        Text2dBundle {
+            text: Text::from_section(
+                text,
+                TextStyle {
+                    font_size: 14.0,
+                    color: Color::srgba(1.0, 0.97, 0.88, 0.95),
+                    ..default()
+                },
+            )
+            .with_justify(JustifyText::Center),
+            text_2d_bounds: Text2dBounds {
+                size: Vec2::new(200.0, 80.0),
+            },
+            transform: Transform::from_translation(pos.extend(3.0)),
+            ..default()
+        },
+    ));
 }
 
 /// Variante inline de spawn_level pour le ré-spawn manuel (sans système).

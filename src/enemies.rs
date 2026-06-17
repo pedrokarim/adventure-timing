@@ -109,7 +109,7 @@ fn spawn_enemies(mut commands: Commands, asset_server: Res<AssetServer>) {
     spawn_enemy(&mut commands, &asset_server, EnemyKind::Wraith, Vec2::new(1700.0, 100.0), 1400.0..2100.0);
 }
 
-fn spawn_enemy(
+pub fn spawn_enemy(
     commands: &mut Commands,
     asset_server: &AssetServer,
     kind: EnemyKind,
