@@ -1,0 +1,45 @@
+name: Feature request
+description: Proposer une nouvelle feature ou amélioration
+title: "[feat] "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci pour l'idée ! Ouvre l'issue **avant** de coder, surtout pour
+        du gameplay ou de l'architectural, on discute du fit avec la
+        roadmap.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problème / besoin
+      description: Quel problème veux-tu résoudre ? Pourquoi ça compte ?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposition
+      description: Comment tu vois la feature idéale ?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives envisagées
+      description: Autres pistes considérées, et pourquoi celle-ci est préférable
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Périmètre
+      options:
+        - Gameplay
+        - UI / menus
+        - Rendu / effets visuels
+        - Audio
+        - Perf / build
+        - Assets (art / audio)
+        - Docs / tooling
+        - Autre
+    validations:
+      required: true

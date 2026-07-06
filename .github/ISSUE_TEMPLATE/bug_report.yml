@@ -1,0 +1,71 @@
+name: Bug report
+description: Rapporter un bug reproductible
+title: "[bug] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de prendre le temps de rapporter ce bug ! Plus tu remplis
+        les champs ci-dessous, plus vite on pourra corriger.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Version du jeu ou SHA du commit (`git rev-parse --short HEAD`)
+      placeholder: "v0.1.0 ou f14d611"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS
+      options:
+        - Linux
+        - Windows
+        - macOS
+        - Autre
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: Version OS
+      placeholder: "Ubuntu 24.04, Windows 11 23H2, macOS 14.4…"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Étapes de reproduction
+      description: Aussi précis que possible, dans l'ordre.
+      placeholder: |
+        1. Lancer le jeu (`cargo run --release`)
+        2. Choisir le hero X
+        3. Aller sur le niveau 3
+        4. Sauter sur la plateforme cristal
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportement attendu
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Comportement observé
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Sortie avec `RUST_LOG=info cargo run` si possible
+      render: shell
+  - type: textarea
+    id: extra
+    attributes:
+      label: Contexte additionnel
+      description: Screenshot, GIF, ou tout ce qui aide à comprendre

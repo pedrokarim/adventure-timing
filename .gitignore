@@ -27,6 +27,12 @@ perf.data*
 # Bevy : assets temporaires éventuels
 assets/.tmp/
 
+# Moodboard perso — auteurs/licence inconnus, ne pas publier
+assets/inspirations/
+
+# PDF (factures, contrats, documents scannés — jamais versionner)
+*.pdf
+
 
 # Added by cargo
 #

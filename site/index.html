@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Adventure Timing — mystic night platformer</title>
+    <meta name="description" content="Side-scroller platformer speedrun-friendly, en Rust avec Bevy 0.14. Nuit mystique, checkpoints, cristaux, drapeaux." />
+    <meta property="og:title" content="Adventure Timing" />
+    <meta property="og:description" content="Side-scroller platformer speedrun-friendly, en Rust avec Bevy." />
+    <meta property="og:image" content="./banner.svg" />
+    <meta property="og:type" content="website" />
+    <link rel="icon" type="image/svg+xml" href="./logo.svg" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <img class="banner" src="./banner.svg" alt="Adventure Timing" />
+      <p class="tagline">
+        Side-scroller platformer speedrun-friendly, en Rust avec Bevy 0.14.
+      </p>
+      <div class="cta">
+        <a class="btn primary" href="https://github.com/pedrokarim/adventure-timing/releases">
+          Télécharger
+        </a>
+        <a class="btn" href="https://github.com/pedrokarim/adventure-timing">
+          Code source
+        </a>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="card">
+        <h2>Le jeu</h2>
+        <p>
+          Une aventure encapuchonnée dans une palette de nuit mystique.
+          Tu enchaînes plateformes, esquives des pics, ramasses des
+          cristaux, franchis checkpoints — et tu chasses le meilleur
+          temps.
+        </p>
+        <ul class="features">
+          <li>Contrôleur kinematic complet (coyote time, jump buffer, saut variable)</li>
+          <li>5 niveaux + tutoriel jouable + carte du voyage</li>
+          <li>Sprites, SFX et musique <strong>procéduraux</strong></li>
+          <li>Sauvegarde persistante (best time, moins de morts, runs)</li>
+          <li>Menu, paramètres, crédits, support manette</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>Contrôles</h2>
+        <table>
+          <tr><th>Action</th><th>Touche</th></tr>
+          <tr><td>Gauche / Droite</td><td><code>Q D</code> ou <code>← →</code></td></tr>
+          <tr><td>Saut</td><td><code>Espace</code>, <code>W</code> ou <code>↑</code></td></tr>
+          <tr><td>Pause</td><td><code>Échap</code></td></tr>
+          <tr><td>Menu</td><td><code>Q</code></td></tr>
+        </table>
+        <p class="note">
+          Saut variable : tap court = petit saut, maintenir = saut haut.
+          Coyote time 100 ms, jump buffer 120 ms.
+        </p>
+      </section>
+
+      <section class="card">
+        <h2>Direction artistique</h2>
+        <div class="art">
+          <img src="./logo.svg" alt="Logo Adventure Timing" />
+          <p>
+            Nuit mystique, silhouettes encapuchonnées, cristaux cyan,
+            drapeaux ambrés. Forêt et montagnes en silhouette, étoiles
+            au-dessus.
+          </p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Web build</h2>
+        <p>
+          Le portage WASM demande de conditionner la sauvegarde sur
+          <code>localStorage</code> (au lieu de <code>directories</code> +
+          <code>std::fs</code> côté desktop). Il arrive dans une version
+          ultérieure. En attendant, joue avec les binaires natifs Linux /
+          Windows / macOS.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        MIT ·
+        <a href="https://github.com/pedrokarim/adventure-timing">GitHub</a> ·
+        <a href="https://github.com/pedrokarim/adventure-timing/issues">Issues</a>
+      </p>
+    </footer>
+  </body>
+</html>
