@@ -369,7 +369,7 @@ fn ai_spitter(
     let Ok(player_t) = player.get_single() else {
         return;
     };
-    for (mut e, t) in &mut q {
+    for (e, t) in &mut q {
         if e.kind != EnemyKind::Spitter {
             continue;
         }

@@ -11,6 +11,7 @@ use crate::states::GameState;
 use bevy::prelude::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[allow(dead_code)]
 pub enum ThrowableKind {
     Bomb,
     IceBlock,
@@ -30,6 +31,7 @@ pub enum ThrowableKind {
 }
 
 impl ThrowableKind {
+    #[allow(dead_code)]
     pub fn label(self) -> &'static str {
         match self {
             ThrowableKind::Bomb => "Bombe",

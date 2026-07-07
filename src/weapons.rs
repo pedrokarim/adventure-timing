@@ -58,6 +58,7 @@ const MAX_ARROWS: u32 = 5;
 
 /// Hitbox d'attaque mêlée. Spawnée pour ~150 ms puis despawn.
 #[derive(Component)]
+#[allow(dead_code)]
 pub struct AttackHitbox {
     pub damage: u32,
     pub knockback: Vec2,
@@ -76,6 +77,7 @@ pub struct Projectile {
 /// Émis quand une hitbox/projectile touche un ennemi. Le module
 /// `enemies` (futur) écoute pour appliquer dégâts + knockback.
 #[derive(Event, Debug)]
+#[allow(dead_code)]
 pub struct WeaponHitEnemy {
     pub target: Entity,
     pub damage: u32,

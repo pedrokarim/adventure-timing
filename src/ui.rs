@@ -33,6 +33,7 @@ const OVERLAY_BG: Color = Color::srgba(0.18, 0.10, 0.06, 0.60);
 
 const PAPYRUS: Color = Color::srgb(0.953, 0.878, 0.706); // #F3E0B4
 const WOOD_LIGHT: Color = Color::srgb(0.847, 0.725, 0.478); // #D8B97A
+#[allow(dead_code)]
 const WOOD: Color = Color::srgb(0.776, 0.604, 0.365); // #C69A5D
 const WOOD_DARK: Color = Color::srgb(0.420, 0.231, 0.094); // #6B3B18
 const WOOD_DARKEST: Color = Color::srgb(0.290, 0.176, 0.102); // #4A2D1A
@@ -86,6 +87,7 @@ struct ToastsContainer;
 
 /// Une notification toast active. TTL puis fade out.
 #[derive(Component)]
+#[allow(dead_code)]
 struct Toast {
     pub remaining: f32,
     pub initial: f32,
@@ -110,6 +112,7 @@ struct TitleText;
 
 /// Marque un bouton et son action associée.
 #[derive(Component, Clone, Copy, Debug)]
+#[allow(dead_code)]
 pub enum MenuAction {
     StartNewGame,
     Continue,
@@ -155,6 +158,7 @@ struct ButtonCount(usize);
 /// - `bold` = display pour compat avec le code existant
 /// - `mono` (DejaVu Sans Mono) : pour fallback / chiffres si besoin
 #[derive(Resource)]
+#[allow(dead_code)]
 struct UiFont {
     /// Crimson Pro Regular — texte courant, élégant et lisible.
     regular: Handle<Font>,
@@ -168,6 +172,7 @@ struct UiFont {
 
 /// Texte dynamique affichant l'état d'un settings (ex: "Fullscreen : ON").
 #[derive(Component, Clone, Copy)]
+#[allow(dead_code)]
 enum DynamicLabel {
     Fullscreen,
     MasterVolume,
@@ -624,6 +629,7 @@ fn spawn_button_with_label(
         .with_children(content);
 }
 
+#[allow(dead_code)]
 fn spawn_dynamic_label(parent: &mut ChildBuilder, font: &UiFont, kind: DynamicLabel) {
     parent.spawn((
         kind,
@@ -1661,8 +1667,8 @@ fn spawn_win_screen(
     let font = font.into_inner();
     let deaths = stats.deaths;
     let secs = stats.time_seconds;
-    let is_new_best_time = save.best_time.map_or(true, |b| secs < b);
-    let is_new_best_deaths = save.fewest_deaths.map_or(true, |d| deaths < d);
+    let is_new_best_time = save.best_time.is_none_or(|b| secs < b);
+    let is_new_best_deaths = save.fewest_deaths.is_none_or(|d| deaths < d);
 
     commands.entity(root).with_children(|p| {
         spawn_text(p, font, "Bravo !", 80.0, ACCENT_CYAN);
@@ -1899,7 +1905,6 @@ fn keyboard_navigation(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 #[allow(clippy::too_many_arguments)]
 fn trigger_action(
     action: MenuAction,

@@ -50,7 +50,7 @@ fn synth(duration_s: f32, f: impl Fn(f32, f32) -> f32) -> Vec<f32> {
 
 /// Bruit blanc pseudo-aléatoire stable basé sur l'index.
 fn noise(t: f32, t_norm: f32) -> f32 {
-    let x = (t * 99371.0 + t_norm * 1373.0).sin() * 43758.5453;
+    let x = (t * 99371.0 + t_norm * 1373.0).sin() * 43758.547;
     (x - x.floor()) * 2.0 - 1.0
 }
 

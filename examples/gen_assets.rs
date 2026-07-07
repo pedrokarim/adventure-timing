@@ -1025,7 +1025,7 @@ fn make_menu_background() {
     draw_cloud(&mut img, 600, 480, 100, cloud_edge);
 
     // ===== Couches de montagnes =====
-    let mut fill_mountain = |img: &mut RgbaImage, peaks: &[(i32, i32)], color: Rgba<u8>| {
+    let fill_mountain = |img: &mut RgbaImage, peaks: &[(i32, i32)], color: Rgba<u8>| {
         for w in peaks.windows(2) {
             let (x0, y0) = w[0];
             let (x1, y1) = w[1];
@@ -1598,6 +1598,7 @@ const FOREST_STONE: Rgba<u8> = Rgba([40, 60, 78, 255]);
 const FOREST_STONE_DK: Rgba<u8> = Rgba([18, 30, 44, 255]);
 const FOREST_STONE_LT: Rgba<u8> = Rgba([64, 96, 116, 255]);
 const FOREST_TREE_BLUE: Rgba<u8> = Rgba([56, 60, 218, 255]);
+#[allow(dead_code)]
 const FOREST_TREE_BLUE_DK: Rgba<u8> = Rgba([30, 32, 156, 255]);
 
 fn make_forest_tiles() {

@@ -35,6 +35,7 @@ impl ItemKind {
         }
     }
 
+    #[allow(dead_code)]
     pub fn label(self) -> &'static str {
         match self {
             ItemKind::AirJumpCrystal => "Cristal",
