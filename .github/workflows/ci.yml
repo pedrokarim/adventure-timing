@@ -57,4 +57,4 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Build (release-fast)
-        run: cargo build --profile release-fast
+        run: cargo build --profile release-fast --no-default-features
