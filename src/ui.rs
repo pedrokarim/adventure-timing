@@ -14,9 +14,9 @@ use crate::items::{ActiveEffects, ItemKind, ItemPickedUp};
 use crate::level::{Checkpoint, RespawnPoint};
 use crate::physics::{Grounded, Velocity};
 use crate::player::{Player, PlayerController, PlayerHp};
-use crate::throwables::Inventory;
-use crate::save::{save_data, save_settings, SaveData, Settings};
+use crate::save::{SaveData, Settings, save_data, save_settings};
 use crate::states::{GameState, RunStats};
+use crate::throwables::Inventory;
 use crate::world::{CurrentLevel, LevelId, PLAYER_SPAWN, TOTAL_LEVELS};
 use bevy::app::AppExit;
 use bevy::prelude::*;
@@ -236,8 +236,7 @@ impl Plugin for UiPlugin {
                 Update,
                 (
                     button_interaction,
-                    keyboard_navigation
-                        .run_if(not(in_state(GameState::Playing))),
+                    keyboard_navigation.run_if(not(in_state(GameState::Playing))),
                     sync_dynamic_labels,
                     pulse_title,
                     toggle_pause_in_game.run_if(in_state(GameState::Playing)),
@@ -450,10 +449,37 @@ fn update_hud(
     stats: Res<RunStats>,
     current_level: Res<CurrentLevel>,
     player_hp: Query<&PlayerHp, With<Player>>,
-    mut deaths_q: Query<&mut Text, (With<HudDeaths>, Without<HudTime>, Without<HudLevel>, Without<HeartIcon>)>,
-    mut time_q: Query<&mut Text, (With<HudTime>, Without<HudDeaths>, Without<HudLevel>, Without<HeartIcon>)>,
-    mut level_q: Query<&mut Text, (With<HudLevel>, Without<HudTime>, Without<HudDeaths>, Without<HeartIcon>)>,
-    mut hearts_q: Query<(&HeartIcon, &mut Text), (Without<HudLevel>, Without<HudDeaths>, Without<HudTime>)>,
+    mut deaths_q: Query<
+        &mut Text,
+        (
+            With<HudDeaths>,
+            Without<HudTime>,
+            Without<HudLevel>,
+            Without<HeartIcon>,
+        ),
+    >,
+    mut time_q: Query<
+        &mut Text,
+        (
+            With<HudTime>,
+            Without<HudDeaths>,
+            Without<HudLevel>,
+            Without<HeartIcon>,
+        ),
+    >,
+    mut level_q: Query<
+        &mut Text,
+        (
+            With<HudLevel>,
+            Without<HudTime>,
+            Without<HudDeaths>,
+            Without<HeartIcon>,
+        ),
+    >,
+    mut hearts_q: Query<
+        (&HeartIcon, &mut Text),
+        (Without<HudLevel>, Without<HudDeaths>, Without<HudTime>),
+    >,
 ) {
     if let Ok(mut t) = deaths_q.get_single_mut() {
         t.sections[0].value = format!("Mortes — {}", stats.deaths);
@@ -511,13 +537,7 @@ fn spawn_overlay(commands: &mut Commands) -> Entity {
         .id()
 }
 
-fn spawn_text(
-    parent: &mut ChildBuilder,
-    font: &UiFont,
-    text: &str,
-    size: f32,
-    color: Color,
-) {
+fn spawn_text(parent: &mut ChildBuilder, font: &UiFont, text: &str, size: f32, color: Color) {
     parent.spawn(TextBundle::from_section(
         text,
         TextStyle {
@@ -858,7 +878,13 @@ fn spawn_level_map(
             }
         });
 
-        spawn_text(p, font, "Clique sur un niveau debloque pour y aller", 16.0, HINT_COLOR);
+        spawn_text(
+            p,
+            font,
+            "Clique sur un niveau debloque pour y aller",
+            16.0,
+            HINT_COLOR,
+        );
 
         p.spawn(NodeBundle {
             style: Style {
@@ -868,7 +894,13 @@ fn spawn_level_map(
             ..default()
         })
         .with_children(|p| {
-            spawn_button(p, &mut counter, font, "Retour au menu", MenuAction::GotoMainMenu);
+            spawn_button(
+                p,
+                &mut counter,
+                font,
+                "Retour au menu",
+                MenuAction::GotoMainMenu,
+            );
         });
     });
 }
@@ -1057,38 +1089,86 @@ fn spawn_tutorial(
             ..default()
         })
         .with_children(|p| {
-            tuto_section(p, font, "Déplacement", &[
-                ("ZQSD / fleches", "bouger"),
-                ("Espace / W / fleche haut", "saut (double ou triple selon heros)"),
-            ]);
-            tuto_section(p, font, "Combat", &[
-                ("F (maintenir + relacher)", "epee chargee : x1 a x3 degats"),
-                ("Touches 1 a 6", "changer d'arme (Dague, Baton, Epee, Arc, Marteau, Boomerang)"),
-                ("Bas + F en saut", "pogostick (rebond sur ennemi)"),
-            ]);
-            tuto_section(p, font, "Inventaire (les carres en bas a droite)", &[
-                ("X ou J", "utiliser l'item selectionne"),
-                ("Tab", "cycler la selection (3 slots)"),
-                ("", "B = Bombe, G = Glace, P = Plateforme, C = Caillou, T = Torche..."),
-            ]);
-            tuto_section(p, font, "HUD", &[
-                ("Coeurs", "PV (3 a 4 selon heros, mort a 0)"),
-                ("Or Niveau X/Y", "etape courante sur 5"),
-                ("Arme : XX", "arme active + flèches restantes pour l'arc"),
-                ("Bandes a droite", "effets actifs (invul, slowmo, etc.)"),
-            ]);
-            tuto_section(p, font, "Objets sur le terrain", &[
-                ("Drapeaux jaunes", "checkpoints (sauvegardent ta position)"),
-                ("Drapeau rose/ambre", "fin du niveau, debloque le suivant"),
-                ("Pics", "1 PV de degat"),
-                ("Coeur rouge", "+1 PV"),
-                ("Petale memoire violet", "ignore la prochaine mort"),
-            ]);
-            tuto_section(p, font, "Ennemis", &[
-                ("Crawler / Flyer / Charger", "stompables (saute dessus, relance le double saut)"),
-                ("Spitter (champignon)", "stompable, mais tire des projectiles"),
-                ("Wraith spectral", "traverse les murs, NON stompable, fuis ou frappe"),
-            ]);
+            tuto_section(
+                p,
+                font,
+                "Déplacement",
+                &[
+                    ("ZQSD / fleches", "bouger"),
+                    (
+                        "Espace / W / fleche haut",
+                        "saut (double ou triple selon heros)",
+                    ),
+                ],
+            );
+            tuto_section(
+                p,
+                font,
+                "Combat",
+                &[
+                    ("F (maintenir + relacher)", "epee chargee : x1 a x3 degats"),
+                    (
+                        "Touches 1 a 6",
+                        "changer d'arme (Dague, Baton, Epee, Arc, Marteau, Boomerang)",
+                    ),
+                    ("Bas + F en saut", "pogostick (rebond sur ennemi)"),
+                ],
+            );
+            tuto_section(
+                p,
+                font,
+                "Inventaire (les carres en bas a droite)",
+                &[
+                    ("X ou J", "utiliser l'item selectionne"),
+                    ("Tab", "cycler la selection (3 slots)"),
+                    (
+                        "",
+                        "B = Bombe, G = Glace, P = Plateforme, C = Caillou, T = Torche...",
+                    ),
+                ],
+            );
+            tuto_section(
+                p,
+                font,
+                "HUD",
+                &[
+                    ("Coeurs", "PV (3 a 4 selon heros, mort a 0)"),
+                    ("Or Niveau X/Y", "etape courante sur 5"),
+                    ("Arme : XX", "arme active + flèches restantes pour l'arc"),
+                    ("Bandes a droite", "effets actifs (invul, slowmo, etc.)"),
+                ],
+            );
+            tuto_section(
+                p,
+                font,
+                "Objets sur le terrain",
+                &[
+                    ("Drapeaux jaunes", "checkpoints (sauvegardent ta position)"),
+                    ("Drapeau rose/ambre", "fin du niveau, debloque le suivant"),
+                    ("Pics", "1 PV de degat"),
+                    ("Coeur rouge", "+1 PV"),
+                    ("Petale memoire violet", "ignore la prochaine mort"),
+                ],
+            );
+            tuto_section(
+                p,
+                font,
+                "Ennemis",
+                &[
+                    (
+                        "Crawler / Flyer / Charger",
+                        "stompables (saute dessus, relance le double saut)",
+                    ),
+                    (
+                        "Spitter (champignon)",
+                        "stompable, mais tire des projectiles",
+                    ),
+                    (
+                        "Wraith spectral",
+                        "traverse les murs, NON stompable, fuis ou frappe",
+                    ),
+                ],
+            );
         });
 
         p.spawn(NodeBundle {
@@ -1099,7 +1179,13 @@ fn spawn_tutorial(
             ..default()
         })
         .with_children(|p| {
-            spawn_button(p, &mut counter, font, "Retour au menu", MenuAction::GotoMainMenu);
+            spawn_button(
+                p,
+                &mut counter,
+                font,
+                "Retour au menu",
+                MenuAction::GotoMainMenu,
+            );
         });
     });
 }
@@ -1172,7 +1258,10 @@ fn spawn_hero_select(
     begin_screen(&mut counter, &mut selection);
     let font = font.into_inner();
     // Préselectionne le slot du héros courant
-    selection.0 = Hero::all().iter().position(|h| *h == selected.0).unwrap_or(0);
+    selection.0 = Hero::all()
+        .iter()
+        .position(|h| *h == selected.0)
+        .unwrap_or(0);
 
     let root = spawn_overlay(&mut commands);
     commands.entity(root).with_children(|p| {
@@ -1214,7 +1303,13 @@ fn spawn_hero_select(
             ..default()
         })
         .with_children(|p| {
-            spawn_button(p, &mut counter, font, "Retour au menu", MenuAction::GotoMainMenu);
+            spawn_button(
+                p,
+                &mut counter,
+                font,
+                "Retour au menu",
+                MenuAction::GotoMainMenu,
+            );
         });
     });
 }
@@ -1492,7 +1587,13 @@ fn spawn_pause_menu(
         .with_children(|p| {
             spawn_button(p, &mut counter, font, "Reprendre", MenuAction::Resume);
             spawn_button(p, &mut counter, font, "Recommencer", MenuAction::Restart);
-            spawn_button(p, &mut counter, font, "Quitter au menu", MenuAction::GotoMainMenu);
+            spawn_button(
+                p,
+                &mut counter,
+                font,
+                "Quitter au menu",
+                MenuAction::GotoMainMenu,
+            );
         });
 
         spawn_text(p, font, "Échap pour reprendre", 16.0, HINT_COLOR);
@@ -1534,7 +1635,13 @@ fn spawn_game_over(
         })
         .with_children(|p| {
             spawn_button(p, &mut counter, font, "Recommencer", MenuAction::Restart);
-            spawn_button(p, &mut counter, font, "Menu principal", MenuAction::GotoMainMenu);
+            spawn_button(
+                p,
+                &mut counter,
+                font,
+                "Menu principal",
+                MenuAction::GotoMainMenu,
+            );
         });
     });
 }
@@ -1600,7 +1707,13 @@ fn spawn_win_screen(
         })
         .with_children(|p| {
             spawn_button(p, &mut counter, font, "Rejouer", MenuAction::Restart);
-            spawn_button(p, &mut counter, font, "Menu principal", MenuAction::GotoMainMenu);
+            spawn_button(
+                p,
+                &mut counter,
+                font,
+                "Menu principal",
+                MenuAction::GotoMainMenu,
+            );
         });
     });
 }
@@ -1727,10 +1840,7 @@ fn keyboard_navigation(
 
     // Échap : retour rapide depuis sous-menus
     if keys.just_pressed(KeyCode::Escape)
-        && matches!(
-            *state.get(),
-            GameState::Settings | GameState::Credits
-        )
+        && matches!(*state.get(), GameState::Settings | GameState::Credits)
     {
         next.set(GameState::MainMenu);
         return;
@@ -1882,14 +1992,12 @@ fn sync_dynamic_labels(
     // Texte (fallback ancien système)
     for (kind, mut text) in &mut q {
         let value = match *kind {
-            DynamicLabel::Fullscreen => {
-                if settings.fullscreen {
-                    "Activé"
-                } else {
-                    "Désactivé"
-                }
-                .to_string()
+            DynamicLabel::Fullscreen => if settings.fullscreen {
+                "Activé"
+            } else {
+                "Désactivé"
             }
+            .to_string(),
             DynamicLabel::MasterVolume => format!("{}%", (settings.master_volume * 100.0) as u32),
             DynamicLabel::MusicVolume => format!("{}%", (settings.music_volume * 100.0) as u32),
             DynamicLabel::SfxVolume => format!("{}%", (settings.sfx_volume * 100.0) as u32),
@@ -1901,8 +2009,11 @@ fn sync_dynamic_labels(
     for (_, children) in &mut toggles {
         for child in children {
             if let Ok(mut text) = toggle_texts.get_mut(*child) {
-                text.sections[0].value =
-                    if settings.fullscreen { "✓".to_string() } else { "".to_string() };
+                text.sections[0].value = if settings.fullscreen {
+                    "✓".to_string()
+                } else {
+                    "".to_string()
+                };
             }
         }
     }
@@ -1930,8 +2041,7 @@ fn pulse_title(time: Res<Time>, mut q: Query<&mut Text, With<TitleText>>) {
     let alpha = 0.85 + 0.15 * (t * 1.6).sin();
     for mut text in &mut q {
         let color = TITLE_COLOR.to_srgba();
-        text.sections[0].style.color =
-            Color::srgba(color.red, color.green, color.blue, alpha);
+        text.sections[0].style.color = Color::srgba(color.red, color.green, color.blue, alpha);
     }
 }
 
@@ -2030,7 +2140,13 @@ fn spawn_checkpoint_toast(
     };
     let font = font.into_inner();
     for _ in events.read() {
-        spawn_toast(&mut commands, container, font, "Checkpoint atteint", ToastStyle::Papyrus);
+        spawn_toast(
+            &mut commands,
+            container,
+            font,
+            "Checkpoint atteint",
+            ToastStyle::Papyrus,
+        );
     }
 }
 
@@ -2059,7 +2175,12 @@ fn tick_toasts(
 
 fn update_inventory_hud(
     inventory: Res<Inventory>,
-    mut slots: Query<(&InventorySlot, &Children, &mut BackgroundColor, &mut BorderColor)>,
+    mut slots: Query<(
+        &InventorySlot,
+        &Children,
+        &mut BackgroundColor,
+        &mut BorderColor,
+    )>,
     mut texts: Query<&mut Text>,
 ) {
     for (slot, children, mut bg, mut border) in &mut slots {
@@ -2183,7 +2304,6 @@ fn update_effects_hud(
         }
     });
 }
-
 
 #[allow(clippy::too_many_arguments)]
 fn reset_player_for_run(

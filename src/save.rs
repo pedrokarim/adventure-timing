@@ -41,11 +41,7 @@ impl SaveData {
     pub fn record_run(&mut self, time: f32, deaths: u32) {
         self.runs_completed += 1;
         self.total_deaths += deaths;
-        self.best_time = Some(
-            self.best_time
-                .map(|prev| prev.min(time))
-                .unwrap_or(time),
-        );
+        self.best_time = Some(self.best_time.map(|prev| prev.min(time)).unwrap_or(time));
         self.fewest_deaths = Some(
             self.fewest_deaths
                 .map(|prev| prev.min(deaths))

@@ -149,8 +149,7 @@ fn handle_attack_input(
         return;
     };
     let dir = if p.facing > 0.0 { 1.0 } else { -1.0 };
-    let down_pressed =
-        keys.pressed(KeyCode::KeyS) || keys.pressed(KeyCode::ArrowDown);
+    let down_pressed = keys.pressed(KeyCode::KeyS) || keys.pressed(KeyCode::ArrowDown);
 
     match weapon.0 {
         WeaponKind::Dagger => {
@@ -194,7 +193,10 @@ fn handle_attack_input(
             state.arrows -= 1;
             let pos = t.translation.truncate() + Vec2::new(20.0 * dir, 4.0);
             commands.spawn((
-                Projectile { damage: 2, remaining: 1.5 },
+                Projectile {
+                    damage: 2,
+                    remaining: 1.5,
+                },
                 crate::physics::Velocity(Vec2::new(540.0 * dir, 0.0)),
                 crate::physics::NoGravity,
                 crate::physics::Collider::new(Vec2::new(20.0, 6.0)),
@@ -227,7 +229,10 @@ fn handle_attack_input(
             let pos = t.translation.truncate() + Vec2::new(16.0 * dir, 4.0);
             commands.spawn((
                 crate::throwables::BoomerangThrow { age: 0.0 },
-                Projectile { damage: 1, remaining: 2.0 },
+                Projectile {
+                    damage: 1,
+                    remaining: 2.0,
+                },
                 crate::physics::Velocity(Vec2::new(420.0 * dir, 60.0)),
                 crate::physics::NoGravity,
                 crate::physics::Collider::new(Vec2::splat(14.0)),
@@ -320,16 +325,25 @@ fn spawn_projectile(commands: &mut Commands, asset_server: &AssetServer, pos: Ve
 }
 
 /// Touches 1..=6 pour switcher d'arme rapidement.
-fn handle_weapon_switch(
-    keys: Res<ButtonInput<KeyCode>>,
-    mut weapon: ResMut<CurrentWeapon>,
-) {
-    if keys.just_pressed(KeyCode::Digit1) { weapon.0 = WeaponKind::Dagger; }
-    if keys.just_pressed(KeyCode::Digit2) { weapon.0 = WeaponKind::MagicStaff; }
-    if keys.just_pressed(KeyCode::Digit3) { weapon.0 = WeaponKind::Sword; }
-    if keys.just_pressed(KeyCode::Digit4) { weapon.0 = WeaponKind::Bow; }
-    if keys.just_pressed(KeyCode::Digit5) { weapon.0 = WeaponKind::Hammer; }
-    if keys.just_pressed(KeyCode::Digit6) { weapon.0 = WeaponKind::Boomerang; }
+fn handle_weapon_switch(keys: Res<ButtonInput<KeyCode>>, mut weapon: ResMut<CurrentWeapon>) {
+    if keys.just_pressed(KeyCode::Digit1) {
+        weapon.0 = WeaponKind::Dagger;
+    }
+    if keys.just_pressed(KeyCode::Digit2) {
+        weapon.0 = WeaponKind::MagicStaff;
+    }
+    if keys.just_pressed(KeyCode::Digit3) {
+        weapon.0 = WeaponKind::Sword;
+    }
+    if keys.just_pressed(KeyCode::Digit4) {
+        weapon.0 = WeaponKind::Bow;
+    }
+    if keys.just_pressed(KeyCode::Digit5) {
+        weapon.0 = WeaponKind::Hammer;
+    }
+    if keys.just_pressed(KeyCode::Digit6) {
+        weapon.0 = WeaponKind::Boomerang;
+    }
 }
 
 /// Recharge les flèches de l'arc à pleine capa quand un checkpoint est

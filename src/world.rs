@@ -114,13 +114,27 @@ impl LevelId {
         }
     }
 
-    fn ground(self) -> String { format!("sprites/tile_ground{}.png", self.suffix()) }
-    fn grass(self) -> String { format!("sprites/tile_grass{}.png", self.suffix()) }
-    fn platform(self) -> String { format!("sprites/tile_platform{}.png", self.suffix()) }
-    fn wall(self) -> String { format!("sprites/tile_wall{}.png", self.suffix()) }
-    pub fn parallax_back(self) -> String { format!("sprites/parallax_back{}.png", self.suffix()) }
-    pub fn parallax_mid(self) -> String { format!("sprites/parallax_mid{}.png", self.suffix()) }
-    pub fn parallax_front(self) -> String { format!("sprites/parallax_front{}.png", self.suffix()) }
+    fn ground(self) -> String {
+        format!("sprites/tile_ground{}.png", self.suffix())
+    }
+    fn grass(self) -> String {
+        format!("sprites/tile_grass{}.png", self.suffix())
+    }
+    fn platform(self) -> String {
+        format!("sprites/tile_platform{}.png", self.suffix())
+    }
+    fn wall(self) -> String {
+        format!("sprites/tile_wall{}.png", self.suffix())
+    }
+    pub fn parallax_back(self) -> String {
+        format!("sprites/parallax_back{}.png", self.suffix())
+    }
+    pub fn parallax_mid(self) -> String {
+        format!("sprites/parallax_mid{}.png", self.suffix())
+    }
+    pub fn parallax_front(self) -> String {
+        format!("sprites/parallax_front{}.png", self.suffix())
+    }
 }
 
 #[derive(Resource, Clone, Copy, Default, Debug)]
@@ -162,7 +176,10 @@ impl Plugin for WorldPlugin {
             .init_resource::<TutorialMode>()
             .init_resource::<LevelDirty>()
             .add_systems(Startup, spawn_level)
-            .add_systems(Update, (rebuild_dirty_level, handle_level_transition).chain());
+            .add_systems(
+                Update,
+                (rebuild_dirty_level, handle_level_transition).chain(),
+            );
     }
 }
 
@@ -217,41 +234,182 @@ fn spawn_level(
     clear_color.0 = level.sky();
 
     // === Section 0 : zone d'échauffement ===
-    spawn_solid(&mut commands, &asset_server, level, Vec2::new(-700.0, -320.0), Vec2::new(800.0, 80.0), Tile::Ground);
+    spawn_solid(
+        &mut commands,
+        &asset_server,
+        level,
+        Vec2::new(-700.0, -320.0),
+        Vec2::new(800.0, 80.0),
+        Tile::Ground,
+    );
 
     // === Section 1 : escaliers de plateformes ===
-    spawn_solid(&mut commands, &asset_server, level, Vec2::new(-180.0, -240.0), Vec2::new(160.0, 32.0), Tile::Platform);
-    spawn_solid(&mut commands, &asset_server, level, Vec2::new(50.0, -160.0), Vec2::new(160.0, 32.0), Tile::Platform);
-    spawn_solid(&mut commands, &asset_server, level, Vec2::new(280.0, -80.0), Vec2::new(160.0, 32.0), Tile::Platform);
+    spawn_solid(
+        &mut commands,
+        &asset_server,
+        level,
+        Vec2::new(-180.0, -240.0),
+        Vec2::new(160.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        &mut commands,
+        &asset_server,
+        level,
+        Vec2::new(50.0, -160.0),
+        Vec2::new(160.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        &mut commands,
+        &asset_server,
+        level,
+        Vec2::new(280.0, -80.0),
+        Vec2::new(160.0, 32.0),
+        Tile::Platform,
+    );
 
-    spawn_checkpoint(&mut commands, &asset_server, Vec2::new(280.0, -32.0), Vec2::new(280.0, -32.0));
+    spawn_checkpoint(
+        &mut commands,
+        &asset_server,
+        Vec2::new(280.0, -32.0),
+        Vec2::new(280.0, -32.0),
+    );
 
     // === Section 2 : passage avec pics ===
-    spawn_solid(&mut commands, &asset_server, level, Vec2::new(620.0, -320.0), Vec2::new(700.0, 80.0), Tile::Ground);
-    spawn_spike_field(&mut commands, &asset_server, Vec2::new(620.0, -268.0), 448.0);
+    spawn_solid(
+        &mut commands,
+        &asset_server,
+        level,
+        Vec2::new(620.0, -320.0),
+        Vec2::new(700.0, 80.0),
+        Tile::Ground,
+    );
+    spawn_spike_field(
+        &mut commands,
+        &asset_server,
+        Vec2::new(620.0, -268.0),
+        448.0,
+    );
 
-    spawn_solid(&mut commands, &asset_server, level, Vec2::new(450.0, -120.0), Vec2::new(128.0, 32.0), Tile::Platform);
-    spawn_solid(&mut commands, &asset_server, level, Vec2::new(640.0, -80.0), Vec2::new(128.0, 32.0), Tile::Platform);
-    spawn_solid(&mut commands, &asset_server, level, Vec2::new(840.0, -120.0), Vec2::new(128.0, 32.0), Tile::Platform);
+    spawn_solid(
+        &mut commands,
+        &asset_server,
+        level,
+        Vec2::new(450.0, -120.0),
+        Vec2::new(128.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        &mut commands,
+        &asset_server,
+        level,
+        Vec2::new(640.0, -80.0),
+        Vec2::new(128.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        &mut commands,
+        &asset_server,
+        level,
+        Vec2::new(840.0, -120.0),
+        Vec2::new(128.0, 32.0),
+        Tile::Platform,
+    );
 
     // === Section 3 : ascension verticale ===
-    spawn_solid(&mut commands, &asset_server, level, Vec2::new(1020.0, -120.0), Vec2::new(64.0, 256.0), Tile::Wall);
-    spawn_solid(&mut commands, &asset_server, level, Vec2::new(880.0, 20.0), Vec2::new(128.0, 32.0), Tile::Platform);
-    spawn_solid(&mut commands, &asset_server, level, Vec2::new(700.0, 120.0), Vec2::new(128.0, 32.0), Tile::Platform);
-    spawn_solid(&mut commands, &asset_server, level, Vec2::new(880.0, 220.0), Vec2::new(128.0, 32.0), Tile::Platform);
-    spawn_solid(&mut commands, &asset_server, level, Vec2::new(1080.0, 320.0), Vec2::new(192.0, 32.0), Tile::Platform);
+    spawn_solid(
+        &mut commands,
+        &asset_server,
+        level,
+        Vec2::new(1020.0, -120.0),
+        Vec2::new(64.0, 256.0),
+        Tile::Wall,
+    );
+    spawn_solid(
+        &mut commands,
+        &asset_server,
+        level,
+        Vec2::new(880.0, 20.0),
+        Vec2::new(128.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        &mut commands,
+        &asset_server,
+        level,
+        Vec2::new(700.0, 120.0),
+        Vec2::new(128.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        &mut commands,
+        &asset_server,
+        level,
+        Vec2::new(880.0, 220.0),
+        Vec2::new(128.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        &mut commands,
+        &asset_server,
+        level,
+        Vec2::new(1080.0, 320.0),
+        Vec2::new(192.0, 32.0),
+        Tile::Platform,
+    );
 
-    spawn_checkpoint(&mut commands, &asset_server, Vec2::new(1080.0, 368.0), Vec2::new(1080.0, 368.0));
+    spawn_checkpoint(
+        &mut commands,
+        &asset_server,
+        Vec2::new(1080.0, 368.0),
+        Vec2::new(1080.0, 368.0),
+    );
 
     // === Section 4 : gap périlleux ===
-    spawn_solid(&mut commands, &asset_server, level, Vec2::new(1320.0, 300.0), Vec2::new(96.0, 32.0), Tile::Platform);
-    spawn_solid(&mut commands, &asset_server, level, Vec2::new(1560.0, 280.0), Vec2::new(96.0, 32.0), Tile::Platform);
-    spawn_solid(&mut commands, &asset_server, level, Vec2::new(1800.0, 260.0), Vec2::new(96.0, 32.0), Tile::Platform);
+    spawn_solid(
+        &mut commands,
+        &asset_server,
+        level,
+        Vec2::new(1320.0, 300.0),
+        Vec2::new(96.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        &mut commands,
+        &asset_server,
+        level,
+        Vec2::new(1560.0, 280.0),
+        Vec2::new(96.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        &mut commands,
+        &asset_server,
+        level,
+        Vec2::new(1800.0, 260.0),
+        Vec2::new(96.0, 32.0),
+        Tile::Platform,
+    );
 
     // === Section 5 : arrivée ===
-    spawn_solid(&mut commands, &asset_server, level, Vec2::new(2100.0, 220.0), Vec2::new(384.0, 32.0), Tile::Ground);
+    spawn_solid(
+        &mut commands,
+        &asset_server,
+        level,
+        Vec2::new(2100.0, 220.0),
+        Vec2::new(384.0, 32.0),
+        Tile::Ground,
+    );
     spawn_goal(&mut commands, &asset_server, Vec2::new(2200.0, 276.0));
-    spawn_solid(&mut commands, &asset_server, level, Vec2::new(2300.0, 270.0), Vec2::new(64.0, 128.0), Tile::Wall);
+    spawn_solid(
+        &mut commands,
+        &asset_server,
+        level,
+        Vec2::new(2300.0, 270.0),
+        Vec2::new(64.0, 128.0),
+        Tile::Wall,
+    );
 }
 
 fn spawn_solid(
@@ -381,45 +539,107 @@ fn handle_level_transition(
 /// Géométrie du niveau tutoriel : flat, calme, avec des annotations
 /// flottantes qui expliquent chaque mécanique au fur et à mesure.
 fn spawn_tutorial_geometry(commands: &mut Commands, asset_server: &AssetServer) {
-    use crate::items::{spawn_item, ItemKind};
+    use crate::items::{ItemKind, spawn_item};
     use crate::level::{spawn_checkpoint, spawn_goal, spawn_spike_field};
 
     let level = LevelId::PinkSunset;
 
     // Sol large
-    spawn_solid(commands, asset_server, level, Vec2::new(0.0, -320.0), Vec2::new(3200.0, 80.0), Tile::Ground);
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(0.0, -320.0),
+        Vec2::new(3200.0, 80.0),
+        Tile::Ground,
+    );
 
     // Annotations
     let annotations: &[(Vec2, &str)] = &[
-        (Vec2::new(-700.0, -200.0), "Bienvenue !\nZQSD ou fleches pour bouger"),
+        (
+            Vec2::new(-700.0, -200.0),
+            "Bienvenue !\nZQSD ou fleches pour bouger",
+        ),
         (Vec2::new(-380.0, -200.0), "Espace pour sauter"),
-        (Vec2::new(-100.0, -150.0), "Maintiens Espace pour\nun saut plus haut"),
-        (Vec2::new(200.0, -80.0), "Double saut en l'air\n(re-Espace en saut)"),
+        (
+            Vec2::new(-100.0, -150.0),
+            "Maintiens Espace pour\nun saut plus haut",
+        ),
+        (
+            Vec2::new(200.0, -80.0),
+            "Double saut en l'air\n(re-Espace en saut)",
+        ),
         (Vec2::new(500.0, -200.0), "Coeur rouge = +1 PV"),
-        (Vec2::new(800.0, -200.0), "Pic blanc = -1 PV\n(saute par-dessus)"),
-        (Vec2::new(1100.0, -200.0), "Drapeau jaune =\ncheckpoint (autosave)"),
-        (Vec2::new(1400.0, -200.0), "Ennemi : F pour\nattaquer (epee)"),
+        (
+            Vec2::new(800.0, -200.0),
+            "Pic blanc = -1 PV\n(saute par-dessus)",
+        ),
+        (
+            Vec2::new(1100.0, -200.0),
+            "Drapeau jaune =\ncheckpoint (autosave)",
+        ),
+        (
+            Vec2::new(1400.0, -200.0),
+            "Ennemi : F pour\nattaquer (epee)",
+        ),
         (Vec2::new(1700.0, -150.0), "Touches 1-6 :\nchanger d'arme"),
-        (Vec2::new(2000.0, -150.0), "X ou J : utiliser\nl'item d'inventaire"),
-        (Vec2::new(2300.0, -200.0), "Drapeau de fin =\nretour au menu"),
+        (
+            Vec2::new(2000.0, -150.0),
+            "X ou J : utiliser\nl'item d'inventaire",
+        ),
+        (
+            Vec2::new(2300.0, -200.0),
+            "Drapeau de fin =\nretour au menu",
+        ),
     ];
     for (pos, text) in annotations {
         spawn_tutorial_sign(commands, *pos, text);
     }
 
     // Plateformes pour pratiquer le saut
-    spawn_solid(commands, asset_server, level, Vec2::new(-180.0, -200.0), Vec2::new(80.0, 24.0), Tile::Platform);
-    spawn_solid(commands, asset_server, level, Vec2::new(0.0, -140.0), Vec2::new(80.0, 24.0), Tile::Platform);
-    spawn_solid(commands, asset_server, level, Vec2::new(200.0, -120.0), Vec2::new(80.0, 24.0), Tile::Platform);
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(-180.0, -200.0),
+        Vec2::new(80.0, 24.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(0.0, -140.0),
+        Vec2::new(80.0, 24.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(200.0, -120.0),
+        Vec2::new(80.0, 24.0),
+        Tile::Platform,
+    );
 
     // Coeur à ramasser
-    spawn_item(commands, asset_server, ItemKind::Heart, Vec2::new(500.0, -250.0));
+    spawn_item(
+        commands,
+        asset_server,
+        ItemKind::Heart,
+        Vec2::new(500.0, -250.0),
+    );
 
     // Petits pics
     spawn_spike_field(commands, asset_server, Vec2::new(800.0, -268.0), 96.0);
 
     // Checkpoint
-    spawn_checkpoint(commands, asset_server, Vec2::new(1100.0, -240.0), Vec2::new(1100.0, -240.0));
+    spawn_checkpoint(
+        commands,
+        asset_server,
+        Vec2::new(1100.0, -240.0),
+        Vec2::new(1100.0, -240.0),
+    );
 
     // Ennemi crawler
     crate::enemies::spawn_enemy(
@@ -432,7 +652,14 @@ fn spawn_tutorial_geometry(commands: &mut Commands, asset_server: &AssetServer) 
 
     // Drapeau de fin
     spawn_goal(commands, asset_server, Vec2::new(2400.0, -224.0));
-    spawn_solid(commands, asset_server, level, Vec2::new(2480.0, -240.0), Vec2::new(40.0, 80.0), Tile::Wall);
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(2480.0, -240.0),
+        Vec2::new(40.0, 80.0),
+        Tile::Wall,
+    );
 }
 
 /// Petit panneau flottant en monde-space pour les annotations du tuto.
@@ -461,26 +688,162 @@ fn spawn_tutorial_sign(commands: &mut Commands, pos: Vec2, text: &str) {
 
 /// Variante inline de spawn_level pour le ré-spawn manuel (sans système).
 fn spawn_level_inline(commands: &mut Commands, asset_server: &AssetServer, level: LevelId) {
-    spawn_solid(commands, asset_server, level, Vec2::new(-700.0, -320.0), Vec2::new(800.0, 80.0), Tile::Ground);
-    spawn_solid(commands, asset_server, level, Vec2::new(-180.0, -240.0), Vec2::new(160.0, 32.0), Tile::Platform);
-    spawn_solid(commands, asset_server, level, Vec2::new(50.0, -160.0), Vec2::new(160.0, 32.0), Tile::Platform);
-    spawn_solid(commands, asset_server, level, Vec2::new(280.0, -80.0), Vec2::new(160.0, 32.0), Tile::Platform);
-    spawn_checkpoint(commands, asset_server, Vec2::new(280.0, -32.0), Vec2::new(280.0, -32.0));
-    spawn_solid(commands, asset_server, level, Vec2::new(620.0, -320.0), Vec2::new(700.0, 80.0), Tile::Ground);
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(-700.0, -320.0),
+        Vec2::new(800.0, 80.0),
+        Tile::Ground,
+    );
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(-180.0, -240.0),
+        Vec2::new(160.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(50.0, -160.0),
+        Vec2::new(160.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(280.0, -80.0),
+        Vec2::new(160.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_checkpoint(
+        commands,
+        asset_server,
+        Vec2::new(280.0, -32.0),
+        Vec2::new(280.0, -32.0),
+    );
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(620.0, -320.0),
+        Vec2::new(700.0, 80.0),
+        Tile::Ground,
+    );
     spawn_spike_field(commands, asset_server, Vec2::new(620.0, -268.0), 448.0);
-    spawn_solid(commands, asset_server, level, Vec2::new(450.0, -120.0), Vec2::new(128.0, 32.0), Tile::Platform);
-    spawn_solid(commands, asset_server, level, Vec2::new(640.0, -80.0), Vec2::new(128.0, 32.0), Tile::Platform);
-    spawn_solid(commands, asset_server, level, Vec2::new(840.0, -120.0), Vec2::new(128.0, 32.0), Tile::Platform);
-    spawn_solid(commands, asset_server, level, Vec2::new(1020.0, -120.0), Vec2::new(64.0, 256.0), Tile::Wall);
-    spawn_solid(commands, asset_server, level, Vec2::new(880.0, 20.0), Vec2::new(128.0, 32.0), Tile::Platform);
-    spawn_solid(commands, asset_server, level, Vec2::new(700.0, 120.0), Vec2::new(128.0, 32.0), Tile::Platform);
-    spawn_solid(commands, asset_server, level, Vec2::new(880.0, 220.0), Vec2::new(128.0, 32.0), Tile::Platform);
-    spawn_solid(commands, asset_server, level, Vec2::new(1080.0, 320.0), Vec2::new(192.0, 32.0), Tile::Platform);
-    spawn_checkpoint(commands, asset_server, Vec2::new(1080.0, 368.0), Vec2::new(1080.0, 368.0));
-    spawn_solid(commands, asset_server, level, Vec2::new(1320.0, 300.0), Vec2::new(96.0, 32.0), Tile::Platform);
-    spawn_solid(commands, asset_server, level, Vec2::new(1560.0, 280.0), Vec2::new(96.0, 32.0), Tile::Platform);
-    spawn_solid(commands, asset_server, level, Vec2::new(1800.0, 260.0), Vec2::new(96.0, 32.0), Tile::Platform);
-    spawn_solid(commands, asset_server, level, Vec2::new(2100.0, 220.0), Vec2::new(384.0, 32.0), Tile::Ground);
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(450.0, -120.0),
+        Vec2::new(128.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(640.0, -80.0),
+        Vec2::new(128.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(840.0, -120.0),
+        Vec2::new(128.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(1020.0, -120.0),
+        Vec2::new(64.0, 256.0),
+        Tile::Wall,
+    );
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(880.0, 20.0),
+        Vec2::new(128.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(700.0, 120.0),
+        Vec2::new(128.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(880.0, 220.0),
+        Vec2::new(128.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(1080.0, 320.0),
+        Vec2::new(192.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_checkpoint(
+        commands,
+        asset_server,
+        Vec2::new(1080.0, 368.0),
+        Vec2::new(1080.0, 368.0),
+    );
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(1320.0, 300.0),
+        Vec2::new(96.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(1560.0, 280.0),
+        Vec2::new(96.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(1800.0, 260.0),
+        Vec2::new(96.0, 32.0),
+        Tile::Platform,
+    );
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(2100.0, 220.0),
+        Vec2::new(384.0, 32.0),
+        Tile::Ground,
+    );
     spawn_goal(commands, asset_server, Vec2::new(2200.0, 276.0));
-    spawn_solid(commands, asset_server, level, Vec2::new(2300.0, 270.0), Vec2::new(64.0, 128.0), Tile::Wall);
+    spawn_solid(
+        commands,
+        asset_server,
+        level,
+        Vec2::new(2300.0, 270.0),
+        Vec2::new(64.0, 128.0),
+        Tile::Wall,
+    );
 }

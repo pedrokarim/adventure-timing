@@ -176,7 +176,12 @@ fn process_use(
 
     match kind {
         ThrowableKind::Bomb => {
-            spawn_bomb(&mut commands, &asset_server, pos + Vec2::new(20.0 * dir, 6.0), dir);
+            spawn_bomb(
+                &mut commands,
+                &asset_server,
+                pos + Vec2::new(20.0 * dir, 6.0),
+                dir,
+            );
         }
         ThrowableKind::IceBlock => {
             spawn_placed(
@@ -199,16 +204,30 @@ fn process_use(
             );
         }
         ThrowableKind::Rock => {
-            spawn_rock(&mut commands, &asset_server, pos + Vec2::new(16.0 * dir, 4.0), dir);
+            spawn_rock(
+                &mut commands,
+                &asset_server,
+                pos + Vec2::new(16.0 * dir, 4.0),
+                dir,
+            );
         }
         ThrowableKind::Torch => {
             spawn_torch(&mut commands, &asset_server, pos + Vec2::new(0.0, -18.0));
         }
         ThrowableKind::Boomerang => {
-            spawn_boomerang(&mut commands, &asset_server, pos + Vec2::new(16.0 * dir, 0.0), dir);
+            spawn_boomerang(
+                &mut commands,
+                &asset_server,
+                pos + Vec2::new(16.0 * dir, 0.0),
+                dir,
+            );
         }
         ThrowableKind::Shield => {
-            spawn_shield(&mut commands, &asset_server, pos + Vec2::new(40.0 * dir, 0.0));
+            spawn_shield(
+                &mut commands,
+                &asset_server,
+                pos + Vec2::new(40.0 * dir, 0.0),
+            );
         }
         ThrowableKind::Trap => {
             spawn_trap(&mut commands, &asset_server, pos + Vec2::new(0.0, -22.0));
@@ -330,7 +349,10 @@ fn spawn_boomerang(commands: &mut Commands, asset_server: &AssetServer, pos: Vec
         Collider::new(size),
         SpriteBundle {
             texture: asset_server.load(ThrowableKind::Boomerang.texture()),
-            sprite: Sprite { custom_size: Some(size), ..default() },
+            sprite: Sprite {
+                custom_size: Some(size),
+                ..default()
+            },
             transform: Transform::from_translation(pos.extend(1.0)),
             ..default()
         },
@@ -345,7 +367,10 @@ fn spawn_shield(commands: &mut Commands, asset_server: &AssetServer, pos: Vec2) 
         Collider::new(size),
         SpriteBundle {
             texture: asset_server.load(ThrowableKind::Shield.texture()),
-            sprite: Sprite { custom_size: Some(size), ..default() },
+            sprite: Sprite {
+                custom_size: Some(size),
+                ..default()
+            },
             transform: Transform::from_translation(pos.extend(1.0)),
             ..default()
         },
@@ -364,7 +389,10 @@ fn spawn_trap(commands: &mut Commands, asset_server: &AssetServer, pos: Vec2) {
         Collider::new(size),
         SpriteBundle {
             texture: asset_server.load(ThrowableKind::Trap.texture()),
-            sprite: Sprite { custom_size: Some(size), ..default() },
+            sprite: Sprite {
+                custom_size: Some(size),
+                ..default()
+            },
             transform: Transform::from_translation(pos.extend(0.6)),
             ..default()
         },
@@ -377,7 +405,10 @@ fn spawn_marker(commands: &mut Commands, asset_server: &AssetServer, pos: Vec2) 
         Placed { ttl: 60.0 },
         SpriteBundle {
             texture: asset_server.load(ThrowableKind::Marker.texture()),
-            sprite: Sprite { custom_size: Some(size), ..default() },
+            sprite: Sprite {
+                custom_size: Some(size),
+                ..default()
+            },
             transform: Transform::from_translation(pos.extend(0.4)),
             ..default()
         },
@@ -394,7 +425,10 @@ fn spawn_turret(commands: &mut Commands, asset_server: &AssetServer, pos: Vec2) 
         Collider::new(size),
         SpriteBundle {
             texture: asset_server.load(ThrowableKind::Turret.texture()),
-            sprite: Sprite { custom_size: Some(size), ..default() },
+            sprite: Sprite {
+                custom_size: Some(size),
+                ..default()
+            },
             transform: Transform::from_translation(pos.extend(0.7)),
             ..default()
         },
@@ -407,7 +441,9 @@ fn tick_boomerangs(
     player: Query<&Transform, With<crate::player::Player>>,
 ) {
     let dt = time.delta_seconds();
-    let Ok(player_t) = player.get_single() else { return };
+    let Ok(player_t) = player.get_single() else {
+        return;
+    };
     for (mut b, mut vel, t) in &mut q {
         b.age += dt;
         if b.age > 0.5 {
@@ -442,15 +478,18 @@ fn tick_turrets(
                 let d = e_t.translation.distance(t.translation);
                 if d < nearest_dist && d < 250.0 {
                     nearest_dist = d;
-                    target_dir = (e_t.translation.truncate() - t.translation.truncate())
-                        .normalize_or_zero();
+                    target_dir =
+                        (e_t.translation.truncate() - t.translation.truncate()).normalize_or_zero();
                 }
             }
             if nearest_dist < f32::MAX {
                 // Tire un projectile
                 let pos = t.translation.truncate() + target_dir * 14.0;
                 commands.spawn((
-                    crate::weapons::Projectile { damage: 1, remaining: 1.0 },
+                    crate::weapons::Projectile {
+                        damage: 1,
+                        remaining: 1.0,
+                    },
                     Velocity(target_dir * 360.0),
                     crate::physics::NoGravity,
                     Collider::new(Vec2::splat(8.0)),

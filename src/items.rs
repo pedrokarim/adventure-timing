@@ -94,12 +94,7 @@ impl Plugin for ItemsPlugin {
 
 const ITEM_SIZE: Vec2 = Vec2::new(16.0, 16.0);
 
-pub fn spawn_item(
-    commands: &mut Commands,
-    asset_server: &AssetServer,
-    kind: ItemKind,
-    pos: Vec2,
-) {
+pub fn spawn_item(commands: &mut Commands, asset_server: &AssetServer, kind: ItemKind, pos: Vec2) {
     commands.spawn((
         Item {
             kind,
@@ -120,12 +115,42 @@ pub fn spawn_item(
 }
 
 fn spawn_items(mut commands: Commands, asset_server: Res<AssetServer>) {
-    spawn_item(&mut commands, &asset_server, ItemKind::AirJumpCrystal, Vec2::new(-180.0, -200.0));
-    spawn_item(&mut commands, &asset_server, ItemKind::AmberPetal, Vec2::new(50.0, -120.0));
-    spawn_item(&mut commands, &asset_server, ItemKind::WhiteFeather, Vec2::new(280.0, -38.0));
-    spawn_item(&mut commands, &asset_server, ItemKind::Hourglass, Vec2::new(1080.0, 360.0));
-    spawn_item(&mut commands, &asset_server, ItemKind::Heart, Vec2::new(640.0, -80.0));
-    spawn_item(&mut commands, &asset_server, ItemKind::MemoryPetal, Vec2::new(1800.0, 280.0));
+    spawn_item(
+        &mut commands,
+        &asset_server,
+        ItemKind::AirJumpCrystal,
+        Vec2::new(-180.0, -200.0),
+    );
+    spawn_item(
+        &mut commands,
+        &asset_server,
+        ItemKind::AmberPetal,
+        Vec2::new(50.0, -120.0),
+    );
+    spawn_item(
+        &mut commands,
+        &asset_server,
+        ItemKind::WhiteFeather,
+        Vec2::new(280.0, -38.0),
+    );
+    spawn_item(
+        &mut commands,
+        &asset_server,
+        ItemKind::Hourglass,
+        Vec2::new(1080.0, 360.0),
+    );
+    spawn_item(
+        &mut commands,
+        &asset_server,
+        ItemKind::Heart,
+        Vec2::new(640.0, -80.0),
+    );
+    spawn_item(
+        &mut commands,
+        &asset_server,
+        ItemKind::MemoryPetal,
+        Vec2::new(1800.0, 280.0),
+    );
 }
 
 fn animate_items(time: Res<Time>, mut q: Query<(&mut Item, &mut Transform)>) {

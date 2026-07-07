@@ -200,19 +200,24 @@ fn main() {
     let track2 = mix(&[&bass2, &melody2, &pad2]);
     save("assets/music/level_2.wav", &track2);
 
-
     // ===== Niveau 3 : "Ruines d'ambre" — C mineur, BPM 90 (industriel) =====
     let duration = 26.0;
     let bpm = 90.0;
     let root_l3 = 65.4; // C2
     let bass3 = synth_bass(duration, root_l3, 0.34);
     let melody3 = synth_melody(
-        duration, bpm, root_l3 * 2.0, &pentatonic_minor,
+        duration,
+        bpm,
+        root_l3 * 2.0,
+        &pentatonic_minor,
         &[0, 3, 2, 4, 1, 3, 0, 2, 4, 1, 3, 2],
         0.20,
     );
     let pad3 = synth_pad(
-        duration, bpm, root_l3 * 2.0, &pentatonic_minor,
+        duration,
+        bpm,
+        root_l3 * 2.0,
+        &pentatonic_minor,
         &[(0, 2, 4), (1, 3, 0), (3, 0, 2)],
         0.16,
     );
@@ -224,12 +229,18 @@ fn main() {
     let root_l4 = 61.7; // B1
     let bass4 = synth_bass(duration, root_l4, 0.38);
     let melody4 = synth_melody(
-        duration, bpm, root_l4 * 2.0, &pentatonic_minor,
+        duration,
+        bpm,
+        root_l4 * 2.0,
+        &pentatonic_minor,
         &[0, 1, 2, 1, 3, 1, 0, 4, 2, 1, 0, 3, 1, 2],
         0.16,
     );
     let pad4 = synth_pad(
-        duration, bpm, root_l4 * 2.0, &pentatonic_minor,
+        duration,
+        bpm,
+        root_l4 * 2.0,
+        &pentatonic_minor,
         &[(0, 1, 3), (0, 2, 4), (1, 3, 0)],
         0.14,
     );
@@ -242,12 +253,18 @@ fn main() {
     let root_l5 = 110.0; // A2
     let bass5 = synth_bass(duration, root_l5, 0.30);
     let melody5 = synth_melody(
-        duration, bpm, root_l5 * 2.0, &pentatonic_major,
+        duration,
+        bpm,
+        root_l5 * 2.0,
+        &pentatonic_major,
         &[0, 2, 4, 2, 1, 3, 4, 2, 0, 3, 2, 4, 0, 2],
         0.22,
     );
     let pad5 = synth_pad(
-        duration, bpm, root_l5 * 2.0, &pentatonic_major,
+        duration,
+        bpm,
+        root_l5 * 2.0,
+        &pentatonic_major,
         &[(0, 2, 4), (2, 4, 1), (4, 1, 3), (0, 2, 4)],
         0.18,
     );

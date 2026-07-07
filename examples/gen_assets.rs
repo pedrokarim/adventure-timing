@@ -216,8 +216,18 @@ fn draw_player_frame_palette(
     let hem_width = (12 + 4 + pose.cloak_flare).min(20);
     rect(img, cx - hem_width / 2, hem_y, hem_width, 1, p.cloak_dk);
     put(img, cx - hem_width / 2 + 2, hem_y + 1, p.cloak_dk);
-    put(img, cx - hem_width / 2 + (hem_width / 2), hem_y + 1, p.cloak_dk);
-    put(img, cx - hem_width / 2 + hem_width - 3, hem_y + 1, p.cloak_dk);
+    put(
+        img,
+        cx - hem_width / 2 + (hem_width / 2),
+        hem_y + 1,
+        p.cloak_dk,
+    );
+    put(
+        img,
+        cx - hem_width / 2 + hem_width - 3,
+        hem_y + 1,
+        p.cloak_dk,
+    );
 
     // Bras écartés
     if pose.arms_out {
@@ -304,7 +314,12 @@ fn draw_player_frame(img: &mut RgbaImage, frame_x: i32, pose: PlayerPose) {
     rect(img, cx - hem_width / 2, hem_y, hem_width, 1, CLOAK_DK);
     // Léger débord en zig-zag (3 px qui dépassent)
     put(img, cx - hem_width / 2 + 2, hem_y + 1, CLOAK_DK);
-    put(img, cx - hem_width / 2 + (hem_width / 2), hem_y + 1, CLOAK_DK);
+    put(
+        img,
+        cx - hem_width / 2 + (hem_width / 2),
+        hem_y + 1,
+        CLOAK_DK,
+    );
     put(img, cx - hem_width / 2 + hem_width - 3, hem_y + 1, CLOAK_DK);
 
     // === Bras écartés (chute uniquement) ===
@@ -323,11 +338,7 @@ fn draw_player_frame(img: &mut RgbaImage, frame_x: i32, pose: PlayerPose) {
 }
 
 fn make_player_with_palette(path: &str, palette: &PlayerPalette) {
-    let mut img = RgbaImage::from_pixel(
-        (PLAYER_FRAME_W * 7) as u32,
-        PLAYER_FRAME_H as u32,
-        TR,
-    );
+    let mut img = RgbaImage::from_pixel((PLAYER_FRAME_W * 7) as u32, PLAYER_FRAME_H as u32, TR);
 
     let poses = [
         POSE_IDLE,
@@ -399,22 +410,14 @@ fn make_player() {
 }
 
 fn make_preview(path: &str, palette: &PlayerPalette) {
-    let mut img = RgbaImage::from_pixel(
-        PLAYER_FRAME_W as u32,
-        PLAYER_FRAME_H as u32,
-        TR,
-    );
+    let mut img = RgbaImage::from_pixel(PLAYER_FRAME_W as u32, PLAYER_FRAME_H as u32, TR);
     draw_player_frame_palette(&mut img, 0, POSE_IDLE, palette);
     save(&img, path);
 }
 
 #[allow(dead_code)]
 fn make_player_old() {
-    let mut img = RgbaImage::from_pixel(
-        (PLAYER_FRAME_W * 7) as u32,
-        PLAYER_FRAME_H as u32,
-        TR,
-    );
+    let mut img = RgbaImage::from_pixel((PLAYER_FRAME_W * 7) as u32, PLAYER_FRAME_H as u32, TR);
 
     // Frame 0 : idle
     draw_player_frame(&mut img, 0, POSE_IDLE);
@@ -509,10 +512,21 @@ fn make_ground_tile() {
 
     // Cailloux clairs et sombres mêlés
     for (x, y, c) in [
-        (3, 4, DIRT_DK), (11, 2, DIRT_DK), (18, 6, DIRT_DK), (25, 3, DIRT_LT),
-        (5, 12, DIRT_LT), (14, 14, DIRT_DK), (22, 11, DIRT_DK), (28, 16, DIRT_DK),
-        (9, 19, DIRT_DK), (20, 20, DIRT_LT), (3, 17, DIRT_DK),
-        (7, 25, DIRT_DK), (17, 27, DIRT_LT), (25, 24, DIRT_DK), (12, 29, DIRT_DK),
+        (3, 4, DIRT_DK),
+        (11, 2, DIRT_DK),
+        (18, 6, DIRT_DK),
+        (25, 3, DIRT_LT),
+        (5, 12, DIRT_LT),
+        (14, 14, DIRT_DK),
+        (22, 11, DIRT_DK),
+        (28, 16, DIRT_DK),
+        (9, 19, DIRT_DK),
+        (20, 20, DIRT_LT),
+        (3, 17, DIRT_DK),
+        (7, 25, DIRT_DK),
+        (17, 27, DIRT_LT),
+        (25, 24, DIRT_DK),
+        (12, 29, DIRT_DK),
     ] {
         put(&mut img, x, y, c);
         put(&mut img, x + 1, y, c);
@@ -530,8 +544,10 @@ fn make_grass_strip() {
     let mut img = RgbaImage::from_pixel(32, 10, TR);
 
     // Hauteurs aléatoires-mais-stables
-    let heights = [3i32, 5, 2, 4, 6, 3, 5, 4, 2, 5, 3, 4, 6, 3, 5, 4,
-                   3, 5, 2, 4, 6, 3, 5, 4, 2, 5, 3, 4, 6, 3, 5, 4];
+    let heights = [
+        3i32, 5, 2, 4, 6, 3, 5, 4, 2, 5, 3, 4, 6, 3, 5, 4, 3, 5, 2, 4, 6, 3, 5, 4, 2, 5, 3, 4, 6,
+        3, 5, 4,
+    ];
 
     for x in 0..32 {
         let top = heights[x as usize].min(6);
@@ -742,14 +758,26 @@ fn make_goal() {
     let halo = Rgba([232, 168, 76, 100]);
     let halo_dim = Rgba([232, 168, 76, 50]);
     for (dx, dy) in [
-        (-6, 0), (6, 0), (0, -8), (0, 12),
-        (-5, -5), (5, -5), (-5, 5), (5, 5),
+        (-6, 0),
+        (6, 0),
+        (0, -8),
+        (0, 12),
+        (-5, -5),
+        (5, -5),
+        (-5, 5),
+        (5, 5),
     ] {
         put(&mut img, cx + dx, crystal_y + 8 + dy, halo);
     }
     for (dx, dy) in [
-        (-9, 0), (9, 0), (-7, -7), (7, -7), (-7, 7), (7, 7),
-        (0, -10), (0, 14),
+        (-9, 0),
+        (9, 0),
+        (-7, -7),
+        (7, -7),
+        (-7, 7),
+        (7, 7),
+        (0, -10),
+        (0, 14),
     ] {
         put(&mut img, cx + dx, crystal_y + 8 + dy, halo_dim);
     }
@@ -766,9 +794,17 @@ fn make_parallax_back() {
 
     // Pétales / poussières en suspension dans la haute couche
     for (x, y) in [
-        (45, 20), (110, 40), (180, 30), (250, 25),
-        (310, 45), (380, 22), (440, 35), (480, 50),
-        (60, 60), (200, 70), (350, 65),
+        (45, 20),
+        (110, 40),
+        (180, 30),
+        (250, 25),
+        (310, 45),
+        (380, 22),
+        (440, 35),
+        (480, 50),
+        (60, 60),
+        (200, 70),
+        (350, 65),
     ] {
         put(&mut img, x, y, Rgba([232, 168, 178, 220]));
         put(&mut img, x + 1, y, Rgba([220, 140, 156, 220]));
@@ -800,9 +836,20 @@ fn make_parallax_back() {
     // Montagnes lointaines (rose clair)
     let peaks_y = 220;
     let peaks = [
-        (0, 0), (40, 40), (80, 20), (120, 55), (160, 30),
-        (200, 50), (240, 15), (280, 45), (320, 30),
-        (360, 60), (400, 20), (440, 40), (472, 25), (512, 38),
+        (0, 0),
+        (40, 40),
+        (80, 20),
+        (120, 55),
+        (160, 30),
+        (200, 50),
+        (240, 15),
+        (280, 45),
+        (320, 30),
+        (360, 60),
+        (400, 20),
+        (440, 40),
+        (472, 25),
+        (512, 38),
     ];
     let mountain = Rgba([222, 132, 144, 255]);
     for w in peaks.windows(2) {
@@ -812,7 +859,14 @@ fn make_parallax_back() {
         for px in 0..dx {
             let t = px as f32 / dx as f32;
             let h = (h0 as f32 * (1.0 - t) + h1 as f32 * t) as i32;
-            rect(&mut img, x0 + px, peaks_y - h, 1, h + (320 - peaks_y), mountain);
+            rect(
+                &mut img,
+                x0 + px,
+                peaks_y - h,
+                1,
+                h + (320 - peaks_y),
+                mountain,
+            );
         }
     }
 
@@ -825,8 +879,15 @@ fn make_parallax_mid() {
 
     let peaks_y = 140;
     let peaks = [
-        (0, 30), (60, 70), (130, 35), (200, 85), (270, 45),
-        (340, 75), (410, 30), (470, 65), (512, 40),
+        (0, 30),
+        (60, 70),
+        (130, 35),
+        (200, 85),
+        (270, 45),
+        (340, 75),
+        (410, 30),
+        (470, 65),
+        (512, 40),
     ];
     let color = Rgba([180, 92, 116, 255]);
     for w in peaks.windows(2) {
@@ -836,7 +897,14 @@ fn make_parallax_mid() {
         for px in 0..dx {
             let t = px as f32 / dx as f32;
             let h = (h0 as f32 * (1.0 - t) + h1 as f32 * t) as i32;
-            rect(&mut img, x0 + px, peaks_y - h, 1, h + (260 - peaks_y), color);
+            rect(
+                &mut img,
+                x0 + px,
+                peaks_y - h,
+                1,
+                h + (260 - peaks_y),
+                color,
+            );
         }
     }
 
@@ -974,23 +1042,45 @@ fn make_menu_background() {
     };
 
     let far_peaks = [
-        (0i32, 510i32), (140, 490), (280, 520), (420, 485),
-        (560, 510), (700, 478), (840, 505), (980, 485),
-        (1120, 510), (1280, 495),
+        (0i32, 510i32),
+        (140, 490),
+        (280, 520),
+        (420, 485),
+        (560, 510),
+        (700, 478),
+        (840, 505),
+        (980, 485),
+        (1120, 510),
+        (1280, 495),
     ];
     fill_mountain(&mut img, &far_peaks, mountain_far);
 
     let mid_peaks = [
-        (0i32, 555i32), (130, 520), (260, 555), (400, 515),
-        (540, 545), (680, 510), (820, 540), (960, 520),
-        (1100, 555), (1280, 530),
+        (0i32, 555i32),
+        (130, 520),
+        (260, 555),
+        (400, 515),
+        (540, 545),
+        (680, 510),
+        (820, 540),
+        (960, 520),
+        (1100, 555),
+        (1280, 530),
     ];
     fill_mountain(&mut img, &mid_peaks, mountain_mid);
 
     let near_peaks = [
-        (0i32, 605i32), (110, 580), (230, 615), (360, 575),
-        (500, 605), (640, 580), (780, 615), (920, 590),
-        (1060, 615), (1200, 585), (1280, 605),
+        (0i32, 605i32),
+        (110, 580),
+        (230, 615),
+        (360, 575),
+        (500, 605),
+        (640, 580),
+        (780, 615),
+        (920, 590),
+        (1060, 615),
+        (1200, 585),
+        (1280, 605),
     ];
     fill_mountain(&mut img, &near_peaks, mountain_near);
 
@@ -1069,8 +1159,10 @@ fn make_parallax_front() {
     let color = Rgba([108, 50, 78, 255]);
 
     // Sol ondulé
-    let ground_dy = [0i32, 2, 4, 3, 1, 2, 5, 3, 1, 0, 2, 4, 3, 1, 2, 5,
-                     3, 1, 0, 2, 4, 3, 1, 2, 5, 3, 1, 0, 2, 4, 3, 1];
+    let ground_dy = [
+        0i32, 2, 4, 3, 1, 2, 5, 3, 1, 0, 2, 4, 3, 1, 2, 5, 3, 1, 0, 2, 4, 3, 1, 2, 5, 3, 1, 0, 2,
+        4, 3, 1,
+    ];
     for x in 0..512 {
         let dy = ground_dy[(x as usize) % ground_dy.len()];
         rect(&mut img, x, ground_y + dy, 1, 180 - ground_y - dy, color);
@@ -1088,7 +1180,14 @@ fn make_parallax_front() {
     for x in (0..512).step_by(3) {
         let h = ((x as f32 * 0.12).sin().abs() * 4.0 + 1.0) as i32;
         let dy = ground_dy[(x as usize) % ground_dy.len()];
-        rect(&mut img, x, ground_y + dy - h, 1, h, Rgba([148, 72, 100, 255]));
+        rect(
+            &mut img,
+            x,
+            ground_y + dy - h,
+            1,
+            h,
+            Rgba([148, 72, 100, 255]),
+        );
     }
 
     save(&img, "assets/sprites/parallax_front.png");
@@ -1308,10 +1407,21 @@ fn make_palette_tiles(p: &LevelPalette) {
     // Ground
     let mut img = RgbaImage::from_pixel(32, 32, p.dirt);
     for (x, y, c) in [
-        (3, 4, p.dirt_dk), (11, 2, p.dirt_dk), (18, 6, p.dirt_lt), (25, 3, p.dirt_lt),
-        (5, 12, p.dirt_lt), (14, 14, p.dirt_dk), (22, 11, p.dirt_dk), (28, 16, p.dirt_lt),
-        (9, 19, p.dirt_dk), (20, 20, p.dirt_lt), (3, 17, p.dirt_dk),
-        (7, 25, p.dirt_dk), (17, 27, p.dirt_lt), (25, 24, p.dirt_dk), (12, 29, p.dirt_dk),
+        (3, 4, p.dirt_dk),
+        (11, 2, p.dirt_dk),
+        (18, 6, p.dirt_lt),
+        (25, 3, p.dirt_lt),
+        (5, 12, p.dirt_lt),
+        (14, 14, p.dirt_dk),
+        (22, 11, p.dirt_dk),
+        (28, 16, p.dirt_lt),
+        (9, 19, p.dirt_dk),
+        (20, 20, p.dirt_lt),
+        (3, 17, p.dirt_dk),
+        (7, 25, p.dirt_dk),
+        (17, 27, p.dirt_lt),
+        (25, 24, p.dirt_dk),
+        (12, 29, p.dirt_dk),
     ] {
         put(&mut img, x, y, c);
         put(&mut img, x + 1, y, c);
@@ -1322,8 +1432,10 @@ fn make_palette_tiles(p: &LevelPalette) {
 
     // Grass strip
     let mut grass = RgbaImage::from_pixel(32, 10, TR);
-    let heights = [3i32, 5, 2, 4, 6, 3, 5, 4, 2, 5, 3, 4, 6, 3, 5, 4,
-                   3, 5, 2, 4, 6, 3, 5, 4, 2, 5, 3, 4, 6, 3, 5, 4];
+    let heights = [
+        3i32, 5, 2, 4, 6, 3, 5, 4, 2, 5, 3, 4, 6, 3, 5, 4, 3, 5, 2, 4, 6, 3, 5, 4, 2, 5, 3, 4, 6,
+        3, 5, 4,
+    ];
     for x in 0..32 {
         let top = heights[x as usize].min(6);
         for dy in 0..(7 - top) {
@@ -1333,7 +1445,10 @@ fn make_palette_tiles(p: &LevelPalette) {
     }
     hline(&mut grass, 0, 7, 32, p.moss_dk);
     rect(&mut grass, 0, 8, 32, 2, p.dirt);
-    save(&grass, &format!("assets/sprites/tile_grass{}.png", p.suffix));
+    save(
+        &grass,
+        &format!("assets/sprites/tile_grass{}.png", p.suffix),
+    );
 
     // Platform (briques)
     let mut platform = RgbaImage::from_pixel(32, 32, p.stone);
@@ -1357,7 +1472,10 @@ fn make_palette_tiles(p: &LevelPalette) {
     put(&mut platform, 20, 11, p.stone_lt);
     put(&mut platform, 8, 19, p.stone_lt);
     put(&mut platform, 26, 27, p.stone_lt);
-    save(&platform, &format!("assets/sprites/tile_platform{}.png", p.suffix));
+    save(
+        &platform,
+        &format!("assets/sprites/tile_platform{}.png", p.suffix),
+    );
 
     // Wall
     let mut wall = RgbaImage::from_pixel(32, 32, p.stone_dk);
@@ -1366,7 +1484,9 @@ fn make_palette_tiles(p: &LevelPalette) {
         let offset = if row % 2 == 0 { 0 } else { 8 };
         for col in 0..4 {
             let x = col * 8 + offset;
-            if x >= 32 { continue; }
+            if x >= 32 {
+                continue;
+            }
             rect(&mut wall, x + 1, y + 1, 6, 6, p.stone);
             put(&mut wall, x + 1, y + 1, p.stone_lt);
         }
@@ -1394,12 +1514,24 @@ fn make_palette_parallax(p: &LevelPalette) {
     }
     // Crêtes lointaines
     let far_peaks = [
-        (0i32, 200i32), (40, 230), (80, 210), (120, 250), (160, 220),
-        (200, 240), (240, 200), (280, 230), (320, 215), (360, 250),
-        (400, 210), (440, 235), (472, 220), (512, 240),
+        (0i32, 200i32),
+        (40, 230),
+        (80, 210),
+        (120, 250),
+        (160, 220),
+        (200, 240),
+        (240, 200),
+        (280, 230),
+        (320, 215),
+        (360, 250),
+        (400, 210),
+        (440, 235),
+        (472, 220),
+        (512, 240),
     ];
     for w in far_peaks.windows(2) {
-        let (x0, y0) = w[0]; let (x1, y1) = w[1];
+        let (x0, y0) = w[0];
+        let (x1, y1) = w[1];
         let dx = x1 - x0;
         for px in 0..dx {
             let t = px as f32 / dx as f32;
@@ -1407,16 +1539,27 @@ fn make_palette_parallax(p: &LevelPalette) {
             rect(&mut back, x0 + px, y_top, 1, 320 - y_top, p.mountain_far);
         }
     }
-    save(&back, &format!("assets/sprites/parallax_back{}.png", p.suffix));
+    save(
+        &back,
+        &format!("assets/sprites/parallax_back{}.png", p.suffix),
+    );
 
     // Mid
     let mut mid = RgbaImage::from_pixel(512, 260, TR);
     let mid_peaks = [
-        (0i32, 130i32), (60, 175), (130, 130), (200, 180), (270, 140),
-        (340, 175), (410, 130), (470, 170), (512, 140),
+        (0i32, 130i32),
+        (60, 175),
+        (130, 130),
+        (200, 180),
+        (270, 140),
+        (340, 175),
+        (410, 130),
+        (470, 170),
+        (512, 140),
     ];
     for w in mid_peaks.windows(2) {
-        let (x0, y0) = w[0]; let (x1, y1) = w[1];
+        let (x0, y0) = w[0];
+        let (x1, y1) = w[1];
         let dx = x1 - x0;
         for px in 0..dx {
             let t = px as f32 / dx as f32;
@@ -1424,7 +1567,10 @@ fn make_palette_parallax(p: &LevelPalette) {
             rect(&mut mid, x0 + px, y_top, 1, 260 - y_top, p.mountain_mid);
         }
     }
-    save(&mid, &format!("assets/sprites/parallax_mid{}.png", p.suffix));
+    save(
+        &mid,
+        &format!("assets/sprites/parallax_mid{}.png", p.suffix),
+    );
 
     // Front
     let mut front = RgbaImage::from_pixel(512, 180, TR);
@@ -1434,7 +1580,10 @@ fn make_palette_parallax(p: &LevelPalette) {
         let h = ((x as f32 * 0.12).sin().abs() * 4.0 + 1.0) as i32;
         rect(&mut front, x, 110 - h, 1, h, p.moss);
     }
-    save(&front, &format!("assets/sprites/parallax_front{}.png", p.suffix));
+    save(
+        &front,
+        &format!("assets/sprites/parallax_front{}.png", p.suffix),
+    );
 }
 
 // =================================================== Forest tiles ===
@@ -1455,12 +1604,21 @@ fn make_forest_tiles() {
     // Ground 32x32 wine sombre teinté bleu nuit + petits éclats cyan
     let mut img = RgbaImage::from_pixel(32, 32, FOREST_DIRT);
     for (x, y, c) in [
-        (3, 4, FOREST_DIRT_DK), (11, 2, FOREST_DIRT_DK), (18, 6, FOREST_DIRT_LT),
-        (25, 3, FOREST_DIRT_LT), (5, 12, FOREST_DIRT_DK), (14, 14, FOREST_DIRT_LT),
-        (22, 11, FOREST_DIRT_DK), (28, 16, FOREST_DIRT_LT),
-        (9, 19, FOREST_DIRT_DK), (20, 20, FOREST_DIRT_LT), (3, 17, FOREST_DIRT_DK),
-        (7, 25, FOREST_DIRT_DK), (17, 27, FOREST_DIRT_LT),
-        (25, 24, FOREST_DIRT_DK), (12, 29, FOREST_DIRT_DK),
+        (3, 4, FOREST_DIRT_DK),
+        (11, 2, FOREST_DIRT_DK),
+        (18, 6, FOREST_DIRT_LT),
+        (25, 3, FOREST_DIRT_LT),
+        (5, 12, FOREST_DIRT_DK),
+        (14, 14, FOREST_DIRT_LT),
+        (22, 11, FOREST_DIRT_DK),
+        (28, 16, FOREST_DIRT_LT),
+        (9, 19, FOREST_DIRT_DK),
+        (20, 20, FOREST_DIRT_LT),
+        (3, 17, FOREST_DIRT_DK),
+        (7, 25, FOREST_DIRT_DK),
+        (17, 27, FOREST_DIRT_LT),
+        (25, 24, FOREST_DIRT_DK),
+        (12, 29, FOREST_DIRT_DK),
     ] {
         put(&mut img, x, y, c);
         put(&mut img, x + 1, y, c);
@@ -1471,8 +1629,10 @@ fn make_forest_tiles() {
 
     // Grass strip 32x10 : mousse teal éparse
     let mut grass = RgbaImage::from_pixel(32, 10, TR);
-    let heights = [3i32, 5, 2, 4, 6, 3, 5, 4, 2, 5, 3, 4, 6, 3, 5, 4,
-                   3, 5, 2, 4, 6, 3, 5, 4, 2, 5, 3, 4, 6, 3, 5, 4];
+    let heights = [
+        3i32, 5, 2, 4, 6, 3, 5, 4, 2, 5, 3, 4, 6, 3, 5, 4, 3, 5, 2, 4, 6, 3, 5, 4, 2, 5, 3, 4, 6,
+        3, 5, 4,
+    ];
     for x in 0..32 {
         let top = heights[x as usize].min(6);
         for dy in 0..(7 - top) {
@@ -1515,7 +1675,9 @@ fn make_forest_tiles() {
         let offset = if row % 2 == 0 { 0 } else { 8 };
         for col in 0..4 {
             let x = col * 8 + offset;
-            if x >= 32 { continue; }
+            if x >= 32 {
+                continue;
+            }
             rect(&mut wall, x + 1, y + 1, 6, 6, FOREST_STONE);
             put(&mut wall, x + 1, y + 1, FOREST_STONE_LT);
         }
@@ -1528,10 +1690,22 @@ fn make_forest_parallax() {
     let mut back = RgbaImage::from_pixel(512, 320, Rgba([18, 28, 40, 255]));
     // Étoiles
     for (x, y) in [
-        (30i32, 20i32), (80, 40), (140, 30), (200, 25), (260, 45),
-        (320, 22), (380, 35), (440, 50), (490, 25),
-        (60, 80), (200, 90), (350, 75), (450, 85),
-        (110, 130), (300, 120), (480, 130),
+        (30i32, 20i32),
+        (80, 40),
+        (140, 30),
+        (200, 25),
+        (260, 45),
+        (320, 22),
+        (380, 35),
+        (440, 50),
+        (490, 25),
+        (60, 80),
+        (200, 90),
+        (350, 75),
+        (450, 85),
+        (110, 130),
+        (300, 120),
+        (480, 130),
     ] {
         put(&mut back, x, y, HAIR);
         put(&mut back, x + 1, y, Rgba([200, 220, 240, 200]));
@@ -1543,7 +1717,14 @@ fn make_forest_parallax() {
 
     // Grand arbre stylisé au centre (silhouette)
     let trunk_x = 256i32;
-    rect(&mut back, trunk_x - 12, 220, 24, 100, Rgba([22, 30, 38, 255]));
+    rect(
+        &mut back,
+        trunk_x - 12,
+        220,
+        24,
+        100,
+        Rgba([22, 30, 38, 255]),
+    );
     rect(&mut back, trunk_x - 8, 200, 16, 20, Rgba([22, 30, 38, 255]));
     // Boules de feuillage bleu
     let leaf_centers = [
@@ -1580,7 +1761,14 @@ fn make_forest_parallax() {
             let half = (20.0 - row as f32 * 0.4) as i32;
             if half > 0 {
                 let y = 120 + row;
-                rect(&mut mid, tx - half + 3, y, half * 2, 1, Rgba([14, 24, 34, 255]));
+                rect(
+                    &mut mid,
+                    tx - half + 3,
+                    y,
+                    half * 2,
+                    1,
+                    Rgba([14, 24, 34, 255]),
+                );
             }
         }
     }
@@ -1614,7 +1802,9 @@ fn make_wraith() {
 
     for row in 0..8 {
         let half = match row {
-            0 => 3, 1 => 5, 2 | 3 => 6,
+            0 => 3,
+            1 => 5,
+            2 | 3 => 6,
             _ => 7,
         };
         let y = row;
@@ -1890,13 +2080,50 @@ fn make_extra_throwables() {
     let rock_mid = Rgba([108, 100, 88, 255]);
     let rock_lt = Rgba([160, 152, 138, 255]);
     for (x, y) in [
-        (3i32, 1i32), (4, 1), (5, 1), (6, 1),
-        (2, 2), (3, 2), (4, 2), (5, 2), (6, 2), (7, 2),
-        (1, 3), (2, 3), (3, 3), (4, 3), (5, 3), (6, 3), (7, 3), (8, 3),
-        (1, 4), (2, 4), (3, 4), (4, 4), (5, 4), (6, 4), (7, 4), (8, 4),
-        (1, 5), (2, 5), (3, 5), (4, 5), (5, 5), (6, 5), (7, 5), (8, 5),
-        (2, 6), (3, 6), (4, 6), (5, 6), (6, 6), (7, 6),
-        (3, 7), (4, 7), (5, 7), (6, 7),
+        (3i32, 1i32),
+        (4, 1),
+        (5, 1),
+        (6, 1),
+        (2, 2),
+        (3, 2),
+        (4, 2),
+        (5, 2),
+        (6, 2),
+        (7, 2),
+        (1, 3),
+        (2, 3),
+        (3, 3),
+        (4, 3),
+        (5, 3),
+        (6, 3),
+        (7, 3),
+        (8, 3),
+        (1, 4),
+        (2, 4),
+        (3, 4),
+        (4, 4),
+        (5, 4),
+        (6, 4),
+        (7, 4),
+        (8, 4),
+        (1, 5),
+        (2, 5),
+        (3, 5),
+        (4, 5),
+        (5, 5),
+        (6, 5),
+        (7, 5),
+        (8, 5),
+        (2, 6),
+        (3, 6),
+        (4, 6),
+        (5, 6),
+        (6, 6),
+        (7, 6),
+        (3, 7),
+        (4, 7),
+        (5, 7),
+        (6, 7),
     ] {
         put(&mut rock, x, y, rock_mid);
     }
@@ -1927,9 +2154,20 @@ fn make_extra_throwables() {
     // Flamme (forme triangulaire)
     for row in 0..8 {
         let half = match row {
-            0 => 1, 1 | 2 => 2, 3 | 4 => 3, 5 => 2, 6 => 2, _ => 1,
+            0 => 1,
+            1 | 2 => 2,
+            3 | 4 => 3,
+            5 => 2,
+            6 => 2,
+            _ => 1,
         };
-        let color = if row < 3 { flame_lt } else if row < 6 { flame } else { flame_dk };
+        let color = if row < 3 {
+            flame_lt
+        } else if row < 6 {
+            flame
+        } else {
+            flame_dk
+        };
         let y = row;
         rect(&mut torch, 7 - half, y, half * 2, 1, color);
     }

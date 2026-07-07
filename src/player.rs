@@ -3,9 +3,9 @@
 //! d'animation par texture atlas (7 frames, voir examples/gen_assets.rs).
 
 use crate::audio::{PlayerAirJumped, PlayerJumped};
+use crate::effects::{ScreenShake, SquashStretch};
 use crate::heroes::SelectedHero;
 use crate::items::ActiveEffects;
-use crate::effects::{ScreenShake, SquashStretch};
 use crate::level::RespawnPoint;
 use crate::physics::{Collider, Grounded, PhysicsSet, Velocity};
 use crate::states::{GameState, PlayerDied, RunStats};
@@ -182,13 +182,8 @@ fn spawn_player(
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     let texture = asset_server.load(selected_hero.0.sprite_path());
-    let layout = TextureAtlasLayout::from_grid(
-        SPRITE_FRAME_SIZE,
-        SPRITE_FRAME_COUNT,
-        1,
-        None,
-        None,
-    );
+    let layout =
+        TextureAtlasLayout::from_grid(SPRITE_FRAME_SIZE, SPRITE_FRAME_COUNT, 1, None, None);
     let layout_handle = layouts.add(layout);
 
     commands.spawn((
@@ -219,7 +214,15 @@ fn spawn_player(
 #[allow(clippy::too_many_arguments)]
 fn handle_death(
     mut deaths: EventReader<PlayerDied>,
-    mut player: Query<(&mut Transform, &mut Velocity, &mut PlayerController, &mut PlayerHp), With<Player>>,
+    mut player: Query<
+        (
+            &mut Transform,
+            &mut Velocity,
+            &mut PlayerController,
+            &mut PlayerHp,
+        ),
+        With<Player>,
+    >,
     respawn: Res<RespawnPoint>,
     selected_hero: Res<SelectedHero>,
     mut effects: ResMut<ActiveEffects>,
@@ -350,7 +353,11 @@ fn handle_horizontal_input(
             // Boost en demi-tour pour répondre vite quand on change de
             // sens, sans pour autant casser le poids du mouvement normal.
             let opposite = velocity.0.x * dir < 0.0;
-            let accel = if opposite { base_accel * TURNAROUND_BOOST } else { base_accel };
+            let accel = if opposite {
+                base_accel * TURNAROUND_BOOST
+            } else {
+                base_accel
+            };
             let delta = (target - velocity.0.x).clamp(-accel * dt, accel * dt);
             velocity.0.x += delta;
             player.facing = dir;
@@ -390,9 +397,8 @@ fn handle_jump_input(
         }
 
         let can_jump_ground = ctrl.coyote_timer < COYOTE_TIME || grounded.0;
-        let can_jump_air = !grounded.0
-            && ctrl.coyote_timer >= COYOTE_TIME
-            && ctrl.air_jumps_remaining > 0;
+        let can_jump_air =
+            !grounded.0 && ctrl.coyote_timer >= COYOTE_TIME && ctrl.air_jumps_remaining > 0;
         let buffered = ctrl.jump_buffer_timer < JUMP_BUFFER;
 
         // Plume blanche : saut +30 %

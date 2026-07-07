@@ -97,9 +97,7 @@ fn check_checkpoints(
         return;
     };
     for (c_t, c_c, mut chk, mut sprite) in &mut checkpoints {
-        if !chk.triggered
-            && aabb_overlap(p_t.translation, p_c.size, c_t.translation, c_c.size)
-        {
+        if !chk.triggered && aabb_overlap(p_t.translation, p_c.size, c_t.translation, c_c.size) {
             chk.triggered = true;
             sprite.color = CHECKPOINT_ACTIVE;
             respawn.0 = chk.spawn_point;

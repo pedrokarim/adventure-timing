@@ -99,14 +99,62 @@ pub struct EnemyProjectile {
 }
 
 fn spawn_enemies(mut commands: Commands, asset_server: Res<AssetServer>) {
-    spawn_enemy(&mut commands, &asset_server, EnemyKind::Crawler, Vec2::new(-100.0, -260.0), -400.0..200.0);
-    spawn_enemy(&mut commands, &asset_server, EnemyKind::Crawler, Vec2::new(700.0, -260.0), 500.0..900.0);
-    spawn_enemy(&mut commands, &asset_server, EnemyKind::Flyer, Vec2::new(450.0, 100.0), 300.0..900.0);
-    spawn_enemy(&mut commands, &asset_server, EnemyKind::Flyer, Vec2::new(1500.0, 320.0), 1300.0..1900.0);
-    spawn_enemy(&mut commands, &asset_server, EnemyKind::Spitter, Vec2::new(880.0, 60.0), 0.0..0.0);
-    spawn_enemy(&mut commands, &asset_server, EnemyKind::Spitter, Vec2::new(1080.0, 360.0), 0.0..0.0);
-    spawn_enemy(&mut commands, &asset_server, EnemyKind::Charger, Vec2::new(1500.0, -258.0), 1200.0..1800.0);
-    spawn_enemy(&mut commands, &asset_server, EnemyKind::Wraith, Vec2::new(1700.0, 100.0), 1400.0..2100.0);
+    spawn_enemy(
+        &mut commands,
+        &asset_server,
+        EnemyKind::Crawler,
+        Vec2::new(-100.0, -260.0),
+        -400.0..200.0,
+    );
+    spawn_enemy(
+        &mut commands,
+        &asset_server,
+        EnemyKind::Crawler,
+        Vec2::new(700.0, -260.0),
+        500.0..900.0,
+    );
+    spawn_enemy(
+        &mut commands,
+        &asset_server,
+        EnemyKind::Flyer,
+        Vec2::new(450.0, 100.0),
+        300.0..900.0,
+    );
+    spawn_enemy(
+        &mut commands,
+        &asset_server,
+        EnemyKind::Flyer,
+        Vec2::new(1500.0, 320.0),
+        1300.0..1900.0,
+    );
+    spawn_enemy(
+        &mut commands,
+        &asset_server,
+        EnemyKind::Spitter,
+        Vec2::new(880.0, 60.0),
+        0.0..0.0,
+    );
+    spawn_enemy(
+        &mut commands,
+        &asset_server,
+        EnemyKind::Spitter,
+        Vec2::new(1080.0, 360.0),
+        0.0..0.0,
+    );
+    spawn_enemy(
+        &mut commands,
+        &asset_server,
+        EnemyKind::Charger,
+        Vec2::new(1500.0, -258.0),
+        1200.0..1800.0,
+    );
+    spawn_enemy(
+        &mut commands,
+        &asset_server,
+        EnemyKind::Wraith,
+        Vec2::new(1700.0, 100.0),
+        1400.0..2100.0,
+    );
 }
 
 pub fn spawn_enemy(
@@ -218,7 +266,12 @@ fn aabb_overlap(a_pos: Vec3, a_size: Vec2, b_pos: Vec3, b_size: Vec2) -> bool {
 fn check_stomp_or_damage(
     mut commands: Commands,
     mut player_q: Query<
-        (&mut Transform, &mut Velocity, &mut PlayerController, &Collider),
+        (
+            &mut Transform,
+            &mut Velocity,
+            &mut PlayerController,
+            &Collider,
+        ),
         With<Player>,
     >,
     mut enemies: Query<(Entity, &Transform, &Collider, &mut Enemy), Without<Player>>,
@@ -240,9 +293,8 @@ fn check_stomp_or_damage(
         // Le Wraith n'est pas stompable.
         let player_bottom = p_t.translation.y - p_c.size.y * 0.5;
         let enemy_top = e_t.translation.y + e_c.size.y * 0.5;
-        let stomped = enemy.kind != EnemyKind::Wraith
-            && p_v.0.y < -50.0
-            && player_bottom >= enemy_top - 8.0;
+        let stomped =
+            enemy.kind != EnemyKind::Wraith && p_v.0.y < -50.0 && player_bottom >= enemy_top - 8.0;
 
         if stomped {
             // L'ennemi prend dégâts max, joueur rebondit + recharge double saut.
@@ -323,7 +375,8 @@ fn ai_spitter(
         }
         // Phase utilisée comme cooldown : tire tous les 2.0 s
         if (e.phase % 2.0) < time.delta_seconds() {
-            let dir = (player_t.translation.truncate() - t.translation.truncate()).normalize_or_zero();
+            let dir =
+                (player_t.translation.truncate() - t.translation.truncate()).normalize_or_zero();
             spawn_enemy_projectile(
                 &mut commands,
                 &asset_server,

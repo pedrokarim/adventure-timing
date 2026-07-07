@@ -307,10 +307,7 @@ fn tick_music_fades(
 
 /// Suit les changements de volume dans Settings (menu paramètres) et
 /// les applique en live sur la piste qui joue (sauf pendant fade).
-fn update_music_volume(
-    settings: Res<Settings>,
-    music_q: Query<(&AudioSink, &MusicEntity)>,
-) {
+fn update_music_volume(settings: Res<Settings>, music_q: Query<(&AudioSink, &MusicEntity)>) {
     if !settings.is_changed() {
         return;
     }

@@ -66,11 +66,7 @@ fn spawn_default_layers(
 
 /// Spawne les 3 couches de parallax pour le niveau donné. Public car
 /// `world::handle_level_transition` l'appelle à la transition.
-pub fn spawn_parallax_layers(
-    commands: &mut Commands,
-    asset_server: &AssetServer,
-    level: LevelId,
-) {
+pub fn spawn_parallax_layers(commands: &mut Commands, asset_server: &AssetServer, level: LevelId) {
     let paths = [
         level.parallax_back(),
         level.parallax_mid(),

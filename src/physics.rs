@@ -88,14 +88,16 @@ fn apply_gravity(time: Res<Time>, mut q: Query<&mut Velocity, Without<NoGravity>
 /// collisions axe par axe contre tous les `Solid`. Met `Grounded` à jour.
 fn move_and_collide(
     time: Res<Time>,
-    mut dynamics: Query<(&mut Transform, &mut Velocity, &Collider, Option<&mut Grounded>)>,
+    mut dynamics: Query<(
+        &mut Transform,
+        &mut Velocity,
+        &Collider,
+        Option<&mut Grounded>,
+    )>,
     solids: Query<(&Transform, &Collider), (With<Solid>, Without<Velocity>)>,
 ) {
     let dt = time.delta_seconds();
-    let solids: Vec<(Vec2, Vec2)> = solids
-        .iter()
-        .map(|(t, c)| aabb(t.translation, c))
-        .collect();
+    let solids: Vec<(Vec2, Vec2)> = solids.iter().map(|(t, c)| aabb(t.translation, c)).collect();
 
     for (mut transform, mut velocity, collider, mut grounded) in &mut dynamics {
         // --- Axe X ---
